@@ -27,7 +27,7 @@ export default defineConfig({
         target: 'http://localhost:3000', // Points to your Firebase backend on port 3000
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        // rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

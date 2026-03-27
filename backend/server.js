@@ -89,14 +89,16 @@ app.get('/', (req, res) => {
 // app.use('/api/system-admin', systemAdminRoutes);
 // app.use('/api/event', hikvisionRoutes);
 
-// NEW LINES ADDED (Matches the Vite Proxy which removes '/api'):
-app.use('/auth', authRoutes);
-app.use('/admin', adminRoutes);
-app.use('/attendance', attendanceRoutes);
-app.use('/leave', leaveRoutes);
-app.use('/team', teamRoutes);
-app.use('/system-admin', systemAdminRoutes);
-app.use('/event', hikvisionRoutes);
+// ========================================
+// API ROUTES
+// ========================================
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/leave', leaveRoutes);
+app.use('/api/team', teamRoutes);
+app.use('/api/system-admin', systemAdminRoutes);
+app.use('/api/event', hikvisionRoutes);
 
 // ========================================
 // ERROR HANDLING
