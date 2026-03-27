@@ -32,7 +32,8 @@ import {
 } from "@/components/ui/table"
 import { getValidIdToken } from "@/lib/firebaseClient"
 
-const _u = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+// const _u = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const _u = import.meta.env.VITE_API_URL || ''
 const API_URL = _u.endsWith('/api') ? _u : `${_u}/api`
 
 export default function TeamAttendancePage() {
