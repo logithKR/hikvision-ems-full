@@ -1,7 +1,6 @@
 /**
  * server.js (UPDATED)
- * 
- * Main Express server with new architecture.
+ * * Main Express server with new architecture.
  * Uses container for dependency injection.
  */
 
@@ -51,7 +50,7 @@ app.use((req, res, next) => {
 // ========================================
 // HEALTH CHECK
 // ========================================
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({
     status: 'OK',
     message: 'Server is running',
@@ -81,13 +80,23 @@ app.get('/', (req, res) => {
 // ========================================
 // API ROUTES
 // ========================================
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/leave', leaveRoutes);
-app.use('/api/team', teamRoutes);
-app.use('/api/system-admin', systemAdminRoutes);
-app.use('/api/event', hikvisionRoutes);
+// OLD LINES COMMENTED OUT:
+// app.use('/api/auth', authRoutes);
+// app.use('/api/admin', adminRoutes);
+// app.use('/api/attendance', attendanceRoutes);
+// app.use('/api/leave', leaveRoutes);
+// app.use('/api/team', teamRoutes);
+// app.use('/api/system-admin', systemAdminRoutes);
+// app.use('/api/event', hikvisionRoutes);
+
+// NEW LINES ADDED (Matches the Vite Proxy which removes '/api'):
+app.use('/auth', authRoutes);
+app.use('/admin', adminRoutes);
+app.use('/attendance', attendanceRoutes);
+app.use('/leave', leaveRoutes);
+app.use('/team', teamRoutes);
+app.use('/system-admin', systemAdminRoutes);
+app.use('/event', hikvisionRoutes);
 
 // ========================================
 // ERROR HANDLING
@@ -99,12 +108,12 @@ app.use('*', (req, res) => {
     error: 'Route not found',
     message: `${req.method} ${req.originalUrl} does not exist`,
     availableRoutes: [
-      '/api/health',
-      '/api/auth',
-      '/api/admin',
-      '/api/attendance',
-      '/api/leave',
-      '/api/system-admin'
+      '/health',
+      '/auth',
+      '/admin',
+      '/attendance',
+      '/leave',
+      '/system-admin'
     ]
   });
 });
