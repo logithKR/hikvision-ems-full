@@ -59,7 +59,7 @@ export default function AdminEmployeesPage() {
   // Create Employee Dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createForm, setCreateForm] = useState({
-    name: "", email: "", password: "", department: "", departmentId: "", phone: "", position: "", role: "employee"
+    name: "", email: "", password: "", department: "", departmentId: "", phone: "", position: "", role: "employee", hikvisionEmployeeId: ""
   })
 
   // Department Management
@@ -73,7 +73,7 @@ export default function AdminEmployeesPage() {
   const [deptMemberType, setDeptMemberType] = useState("employee") // 'hod', 'manager', 'employee'
   const [selectedDeptForMember, setSelectedDeptForMember] = useState(null)
   const [deptMemberForm, setDeptMemberForm] = useState({
-    name: "", email: "", password: "", phone: "", position: "", managerId: ""
+    name: "", email: "", password: "", phone: "", position: "", managerId: "", hikvisionEmployeeId: ""
   })
 
   // Auth Check
@@ -239,7 +239,7 @@ export default function AdminEmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
       setCreateDialogOpen(false)
-      setCreateForm({ name: "", email: "", password: "", department: "", departmentId: "", phone: "", position: "", role: "employee" })
+      setCreateForm({ name: "", email: "", password: "", department: "", departmentId: "", phone: "", position: "", role: "employee", hikvisionEmployeeId: "" })
     },
   })
 
@@ -320,7 +320,7 @@ export default function AdminEmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setDeptMemberDialogOpen(false)
-      setDeptMemberForm({ name: "", email: "", password: "", phone: "", position: "", managerId: "" })
+      setDeptMemberForm({ name: "", email: "", password: "", phone: "", position: "", managerId: "", hikvisionEmployeeId: "" })
     },
   })
 
@@ -331,7 +331,8 @@ export default function AdminEmployeesPage() {
     setDeptMemberForm({
       name: "", email: "", password: "", phone: "",
       position: type === 'hod' ? 'Department Head' : "",
-      managerId: ""
+      managerId: "",
+      hikvisionEmployeeId: ""
     })
     setDeptMemberDialogOpen(true)
   }
@@ -1067,6 +1068,20 @@ export default function AdminEmployeesPage() {
                 className="border-slate-200 focus-visible:ring-blue-500"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-hikvision" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                Hikvision Employee ID
+                <span className="text-xs font-normal text-slate-400">(optional)</span>
+              </Label>
+              <Input
+                id="edit-hikvision"
+                placeholder="e.g. EMP001"
+                value={editForm.hikvisionEmployeeId || ""}
+                onChange={(e) => setEditForm({ ...editForm, hikvisionEmployeeId: e.target.value })}
+                className="border-slate-200 focus-visible:ring-blue-500 font-mono"
+              />
+              <p className="text-[10px] text-slate-400">Must match the Employee No. registered on the Hikvision device.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-slate-200">
@@ -1145,8 +1160,8 @@ export default function AdminEmployeesPage() {
                 </div>
                 {viewingEmployee.hikvisionEmployeeId && (
                   <div>
-                    <span className="text-xs font-medium text-slate-400 uppercase">Employee ID</span>
-                    <p className="mt-1 text-sm text-slate-700">{viewingEmployee.hikvisionEmployeeId}</p>
+                    <span className="text-xs font-medium text-slate-400 uppercase">Hikvision ID</span>
+                    <p className="mt-1 text-sm text-slate-700 font-mono">{viewingEmployee.hikvisionEmployeeId}</p>
                   </div>
                 )}
                 {viewingEmployee.createdAt && (
@@ -1395,6 +1410,22 @@ export default function AdminEmployeesPage() {
               </Select>
               <p className="text-[10px] text-slate-400">If unassigned, employee reports to the HOD of their department.</p>
             </div>
+
+            {/* Hikvision Device Link */}
+            <div className="space-y-2">
+              <Label htmlFor="create-hikvision" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                Hikvision Employee ID
+                <span className="text-xs font-normal text-slate-400">(optional)</span>
+              </Label>
+              <Input
+                id="create-hikvision"
+                placeholder="e.g. EMP001"
+                value={createForm.hikvisionEmployeeId}
+                onChange={(e) => setCreateForm({ ...createForm, hikvisionEmployeeId: e.target.value })}
+                className="border-slate-200 focus-visible:ring-blue-500 font-mono"
+              />
+              <p className="text-[10px] text-slate-400">Enter the Employee No. from the Hikvision device to link attendance automatically. Leave blank if not using a device.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)} className="border-slate-200">
@@ -1585,6 +1616,21 @@ export default function AdminEmployeesPage() {
                 </p>
               </div>
             )}
+
+            {/* Hikvision Device Link */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                Hikvision Employee ID
+                <span className="text-xs font-normal text-slate-400">(optional)</span>
+              </Label>
+              <Input
+                placeholder="e.g. EMP001"
+                value={deptMemberForm.hikvisionEmployeeId || ""}
+                onChange={(e) => setDeptMemberForm({ ...deptMemberForm, hikvisionEmployeeId: e.target.value })}
+                className="border-slate-200 focus-visible:ring-blue-500 font-mono"
+              />
+              <p className="text-[10px] text-slate-400">Enter the Employee No. from the Hikvision device to auto-link attendance. Leave blank if not using a device.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeptMemberDialogOpen(false)} className="border-slate-200">Cancel</Button>

@@ -36,7 +36,7 @@ const userRepo = container.getUserRepo();
 router.post('/employees', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   console.log('📝 POST /api/admin/employees - Create user (Admin/Employee)');
   try {
-    const { name, email, password, department, position, salary, workingType, skills, address, emergencyContact, phone, role } = req.body;
+    const { name, email, password, department, position, salary, workingType, skills, address, emergencyContact, phone, role, hikvisionEmployeeId } = req.body;
     const { organizationId, uid: creatorId, role: creatorRole } = req.user;
 
     // Validate required fields
@@ -50,7 +50,7 @@ router.post('/employees', authenticateToken, requireAdminOrBusinessOwner, async 
     // Create user (quota validation and permission check happens in service)
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department, departmentId: req.body.departmentId, position, salary, workingType, skills, address, emergencyContact, phone, role: targetRole, isDeptHead: req.body.isDeptHead || false, isManager: req.body.isManager || false, managerId: req.body.managerId || null },
+      { name, email, password, department, departmentId: req.body.departmentId, position, salary, workingType, skills, address, emergencyContact, phone, role: targetRole, isDeptHead: req.body.isDeptHead || false, isManager: req.body.isManager || false, managerId: req.body.managerId || null, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId,
       creatorRole
     );
@@ -734,7 +734,7 @@ router.post('/departments/:id/hod', authenticateToken, requireAdmin, async (req,
   try {
     const { organizationId, uid: creatorId, role: creatorRole } = req.user;
     const deptId = req.params.id;
-    const { name, email, password, position, phone } = req.body;
+    const { name, email, password, position, phone, hikvisionEmployeeId } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -747,7 +747,7 @@ router.post('/departments/:id/hod', authenticateToken, requireAdmin, async (req,
 
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Department Head', isDeptHead: true, role: 'employee', phone },
+      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Department Head', isDeptHead: true, role: 'employee', phone, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId, creatorRole
     );
 
@@ -765,7 +765,7 @@ router.post('/departments/:id/employees', authenticateToken, requireAdmin, async
   try {
     const { organizationId, uid: creatorId, role: creatorRole } = req.user;
     const deptId = req.params.id;
-    const { name, email, password, position, phone } = req.body;
+    const { name, email, password, position, phone, hikvisionEmployeeId } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -781,7 +781,7 @@ router.post('/departments/:id/employees', authenticateToken, requireAdmin, async
 
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Employee', role: 'employee', phone, managerId: req.body.managerId || dept.headId || null },
+      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Employee', role: 'employee', phone, managerId: req.body.managerId || dept.headId || null, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId, creatorRole
     );
 
@@ -799,7 +799,7 @@ router.post('/departments/:id/managers', authenticateToken, requireAdmin, async 
   try {
     const { organizationId, uid: creatorId, role: creatorRole } = req.user;
     const deptId = req.params.id;
-    const { name, email, password, position, phone } = req.body;
+    const { name, email, password, position, phone, hikvisionEmployeeId } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -814,7 +814,7 @@ router.post('/departments/:id/managers', authenticateToken, requireAdmin, async 
 
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Manager', isManager: true, role: 'employee', phone, managerId: dept.headId || null },
+      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Manager', isManager: true, role: 'employee', phone, managerId: dept.headId || null, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId, creatorRole
     );
 

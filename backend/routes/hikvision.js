@@ -3,7 +3,7 @@ const router = express.Router();
 const container = require('../container');
 const db = container.db;
 
-// Helper functions (copied from original Next.js route)
+// Helper functions
 function getVerifyMode(code) {
     const map = {
         38: "Fingerprint",
@@ -11,7 +11,7 @@ function getVerifyMode(code) {
         76: "Face",
         1: "Card",
         25: "Card",
-        10: "Card", // Added 10 as per original map
+        10: "Card",
     };
     return map[code] || "Unknown";
 }
@@ -26,9 +26,63 @@ function getTimeString(isoString) {
     });
 }
 
+/**
+ * Get date string in en-US locale (matches the way AttendanceRepository keys records).
+ * Returns format like "3/8/2026".
+ */
 function getDateString(isoString) {
     const date = new Date(isoString);
     return date.toLocaleDateString("en-US");
+}
+
+/**
+ * Get ISO date string YYYY-MM-DD for use as part of the attendance doc ID.
+ */
+function getIsoDateString(isoString) {
+    return new Date(isoString).toISOString().split('T')[0];
+}
+
+/**
+ * Look up the EMS user by their hikvisionEmployeeId across all organizations.
+ * Returns { uid, organizationId, name } or null if not found.
+ */
+async function findEmsUserByHikvisionId(hikvisionEmployeeId) {
+    console.log(`🔍 Looking up EMS user for Hikvision ID: "${hikvisionEmployeeId}"`);
+
+    try {
+        const orgsSnapshot = await db.collection('organizations').get();
+
+        for (const orgDoc of orgsSnapshot.docs) {
+            const orgId = orgDoc.id;
+
+            const userQuery = await db
+                .collection('organizations')
+                .doc(orgId)
+                .collection('users')
+                .where('hikvisionEmployeeId', '==', hikvisionEmployeeId)
+                .where('isActive', '==', true)
+                .limit(1)
+                .get();
+
+            if (!userQuery.empty) {
+                const userDoc = userQuery.docs[0];
+                const userData = userDoc.data();
+                console.log(`✅ Linked to EMS user: ${userData.name} (uid: ${userDoc.id}) in org: ${orgId}`);
+                return {
+                    uid: userDoc.id,
+                    organizationId: orgId,
+                    name: userData.name,
+                };
+            }
+        }
+
+        console.log(`⚠️ No active EMS user found for Hikvision ID: "${hikvisionEmployeeId}"`);
+        return null;
+
+    } catch (err) {
+        console.error(`❌ Error looking up EMS user by Hikvision ID:`, err.message);
+        return null;
+    }
 }
 
 router.post('/', async (req, res) => {
@@ -38,54 +92,43 @@ router.post('/', async (req, res) => {
 
         console.log(`📥 Received Hikvision Event. Content-Type: ${contentType}`);
 
-        // Express body-parser handles JSON automatically if configured
         if (req.body && Object.keys(req.body).length > 0) {
             payload = req.body;
             console.log("✅ Body parsed by Express:", Object.keys(payload));
         } else {
-            // Fallback for raw text/multipart handling if body-parser didn't catch it
-            // Note: In a typical Express setup with app.use(express.json()), req.body is already an object.
-            // For multipart/form-data, we'd need multer, but the original code did manual parsing.
-            // We'll trust mostly on JSON or pre-parsed body here.
             console.log("⚠️ Body empty or not parsed automatically.");
         }
 
-        // Manual Multipart/Text handling logic from original (simplified for Express)
-        // If req.body is empty, it might be because of content-type mismatch or missing middleware
-
         if (!payload && contentType.includes("multipart/form-data")) {
-            console.log("⚠️ Multipart data received but not parsed. Ensure 'multer' or similar is used if needed.");
-            // For now, returning IGNORED if we can't parse it, 
-            // essentially enforcing JSON or proper body parsing upstream.
+            console.log("⚠️ Multipart data received but not parsed.");
         }
 
-        console.log("🔍 Payload result:", payload ? `Found with keys: ${Object.keys(payload)}` : "NULL");
-
         if (!payload || !payload.AccessControllerEvent) {
-            console.log("⚠️ Missing AccessControllerEvent, available keys:", payload ? Object.keys(payload) : "none");
+            console.log("⚠️ Missing AccessControllerEvent:", payload ? Object.keys(payload) : "none");
             return res.status(200).send("IGNORED");
         }
 
         const e = payload.AccessControllerEvent;
-        const employeeId = e.employeeNoString ?? null;
+        const hikvisionEmployeeId = e.employeeNoString ?? null;
         const employeeName = e.name ?? null;
         const attendanceStatus = e.attendanceStatus ?? null;
         const verifyMode = getVerifyMode(e.subEventType);
         const scanTime = new Date().toISOString();
 
-        if (!employeeId || !employeeName || !attendanceStatus) {
+        if (!hikvisionEmployeeId || !attendanceStatus) {
             return res.status(200).send("IGNORED (NO EMPLOYEE DATA)");
         }
 
-        const dateString = getDateString(scanTime);
+        const dateString = getDateString(scanTime);   // "3/8/2026"  — for display
+        const isoDateString = getIsoDateString(scanTime); // "2026-03-08" — for doc ID
         const timeString = getTimeString(scanTime);
 
-        console.log("🎯 Processing attendance:", { employeeId, employeeName, attendanceStatus, verifyMode });
+        console.log("🎯 Processing attendance:", { hikvisionEmployeeId, employeeName, attendanceStatus, verifyMode });
 
-        // 1️⃣ SAVE RAW HIKVISION DATA (for logs/audit)
+        // 1️⃣ SAVE RAW HIKVISION DATA (always, for audit)
         try {
             const logRef = await db.collection("hikvision_logs").add({
-                employeeId,
+                hikvisionEmployeeId,
                 employeeName,
                 attendanceStatus,
                 verifyMode,
@@ -96,44 +139,80 @@ router.post('/', async (req, res) => {
             console.error("❌ Failed to save to hikvision_logs:", saveErr.message);
         }
 
-        // 2️⃣ UPDATE EMS ATTENDANCE RECORD
-        const attendanceRef = db.collection("attendance");
-        const existingQuery = await attendanceRef
-            .where("employeeId", "==", employeeId)
-            .where("date", "==", dateString)
-            .limit(1)
-            .get();
+        // 2️⃣ FIND THE LINKED EMS USER
+        const emsUser = await findEmsUserByHikvisionId(hikvisionEmployeeId);
 
-        if (existingQuery.empty) {
-            await attendanceRef.add({
-                employeeId,
-                employeeName,
-                date: dateString,
+        if (!emsUser) {
+            console.log(`⚠️ Hikvision ID "${hikvisionEmployeeId}" not linked — skipping attendance.`);
+            return res.status(200).send("OK (UNLINKED)");
+        }
+
+        const { uid: userId, organizationId, name: userName } = emsUser;
+
+        // 3️⃣ WRITE EMS ATTENDANCE using the same doc ID scheme as AttendanceRepository
+        // Doc ID format: {userId}_{YYYY-MM-DD}
+        const attendanceDocId = `${userId}_${isoDateString}`;
+        const attendanceRef = db
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('attendance')
+            .doc(attendanceDocId);
+
+        const docSnap = await attendanceRef.get();
+        const timestamp = new Date().toISOString();
+
+        if (!docSnap.exists) {
+            // Create brand new attendance record
+            const newData = {
+                id: attendanceDocId,
+                userId,
+                userName,
+                date: isoDateString,
+                organizationId,
                 checkIn: attendanceStatus === "checkIn" ? timeString : null,
                 checkOut: attendanceStatus === "checkOut" ? timeString : null,
-                breakIn: null,
-                breakOut: null,
+                breakIn: attendanceStatus === "breakIn" ? timeString : null,
+                breakOut: attendanceStatus === "breakOut" ? timeString : null,
                 verifyMode,
-                createdAt: scanTime,
-                updatedAt: scanTime
-            });
-            console.log("✅ NEW EMS record:", employeeId, dateString);
+                verifyMethod: verifyMode,
+                source: 'hikvision',
+                events: [{
+                    type: attendanceStatus,
+                    time: timestamp,
+                    method: verifyMode,
+                }],
+                createdAt: timestamp,
+                updatedAt: timestamp,
+            };
+            await attendanceRef.set(newData);
+            console.log(`✅ NEW attendance record created: ${attendanceDocId} (${attendanceStatus})`);
+
         } else {
-            const docRef = existingQuery.docs[0].ref;
-            const existingData = existingQuery.docs[0].data();
-            const updateData = { updatedAt: scanTime, verifyMode };
+            // Update existing record — only set field if not already set (don't overwrite earlier checkIn, etc.)
+            const existingData = docSnap.data();
+            const events = existingData.events || [];
+            events.push({ type: attendanceStatus, time: timestamp, method: verifyMode });
 
-            if (attendanceStatus === "checkIn" && !existingData.checkIn) {
-                updateData.checkIn = timeString;
-            } else if (attendanceStatus === "checkOut" && !existingData.checkOut) {
-                updateData.checkOut = timeString;
-            }
+            const updateData = {
+                updatedAt: timestamp,
+                verifyMode,
+                verifyMethod: verifyMode,
+                source: 'hikvision',
+                events,
+            };
 
-            await docRef.update(updateData);
-            console.log("✅ UPDATED EMS record:", employeeId);
+            // Only update the relevant time field if not already recorded
+            if (attendanceStatus === "checkIn" && !existingData.checkIn) updateData.checkIn = timeString;
+            if (attendanceStatus === "checkOut" && !existingData.checkOut) updateData.checkOut = timeString;
+            if (attendanceStatus === "breakIn" && !existingData.breakIn) updateData.breakIn = timeString;
+            if (attendanceStatus === "breakOut" && !existingData.breakOut) updateData.breakOut = timeString;
+
+            await attendanceRef.update(updateData);
+            console.log(`✅ UPDATED attendance record: ${attendanceDocId} (${attendanceStatus}) for ${userName}`);
         }
 
         return res.status(200).send("OK");
+
     } catch (err) {
         console.error("❌ Error:", err);
         return res.status(500).send("ERROR");
@@ -141,7 +220,7 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/', (req, res) => {
-    res.status(200).send("Event API Running");
+    res.status(200).send("Hikvision Event API Running");
 });
 
 module.exports = router;

@@ -93,6 +93,7 @@ class EmployeeService {
         address: employeeData.address || '',
         emergencyContact: employeeData.emergencyContact || '',
         phone: employeeData.phone || '',
+        hikvisionEmployeeId: employeeData.hikvisionEmployeeId || null,
         createdBy: creatorId
       });
 
