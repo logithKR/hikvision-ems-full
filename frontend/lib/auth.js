@@ -6,7 +6,10 @@
 import { auth, signInWithCustomToken } from './firebaseClient';
 
 // ✅ Consistent API URL (base server URL, /api appended by getApiBase)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// OLD LINE COMMENTED OUT:
+// const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// NEW LINE ADDED:
+const API_URL = import.meta.env.VITE_API_URL || '';
 const getApiBase = () => API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
 
 /**
