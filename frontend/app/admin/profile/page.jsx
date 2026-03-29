@@ -129,7 +129,7 @@ export default function AdminProfilePage() {
         const updatedEmployee = data.employee
         const updatedUser = { ...currentUser, ...updatedEmployee }
         // Update both session storage and state
-        localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+        sessionStorage.setItem("currentUser", JSON.stringify(updatedUser))
         setCurrentUser(updatedUser)
         setEditMode(false)
         alert("Profile updated successfully!")

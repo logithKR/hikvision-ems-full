@@ -75,7 +75,7 @@ export async function loginUser(email, password, organizationId = null, expected
       user: data.user
     };
     storeAuthData(authData);
-    console.log('💾 Auth: Stored auth data in localStorage');
+    console.log('💾 Auth: Stored auth data in sessionStorage');
 
     return {
       success: true,
@@ -179,23 +179,23 @@ export async function registerOrganization(data) {
 }
 
 /**
- * Store authentication data in localStorage
+ * Store authentication data in sessionStorage
  */
 export function storeAuthData({ isLoggedIn, token, user }) {
   try {
-    localStorage.setItem('isLoggedIn', String(isLoggedIn));
-    localStorage.setItem('firebaseToken', token);
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    sessionStorage.setItem('isLoggedIn', String(isLoggedIn));
+    sessionStorage.setItem('firebaseToken', token);
+    sessionStorage.setItem('currentUser', JSON.stringify(user));
 
     // Role-specific flags (for backward compatibility)
     if (user.role === 'admin') {
-      localStorage.setItem('adminLoggedIn', 'true');
+      sessionStorage.setItem('adminLoggedIn', 'true');
     } else if (user.role === 'employee') {
-      localStorage.setItem('employeeLoggedIn', 'true');
+      sessionStorage.setItem('employeeLoggedIn', 'true');
     } else if (user.role === 'business_owner') {
-      localStorage.setItem('businessOwnerLoggedIn', 'true');
+      sessionStorage.setItem('businessOwnerLoggedIn', 'true');
     } else if (user.role === 'system_admin') {
-      localStorage.setItem('systemAdminLoggedIn', 'true');
+      sessionStorage.setItem('systemAdminLoggedIn', 'true');
     }
   } catch (error) {
     console.error('❌ Failed to store auth data:', error);
@@ -203,11 +203,11 @@ export function storeAuthData({ isLoggedIn, token, user }) {
 }
 
 /**
- * Get current user from localStorage
+ * Get current user from sessionStorage
  */
 export function getCurrentUser() {
   try {
-    const userStr = localStorage.getItem('currentUser');
+    const userStr = sessionStorage.getItem('currentUser');
     return userStr ? JSON.parse(userStr) : null;
   } catch {
     return null;
@@ -219,7 +219,7 @@ export function getCurrentUser() {
  */
 export function getAuthToken() {
   try {
-    return localStorage.getItem('firebaseToken') || '';
+    return sessionStorage.getItem('firebaseToken') || '';
   } catch {
     return '';
   }
@@ -230,7 +230,7 @@ export function getAuthToken() {
  */
 export function isAuthenticated() {
   try {
-    return localStorage.getItem('isLoggedIn') === 'true';
+    return sessionStorage.getItem('isLoggedIn') === 'true';
   } catch {
     return false;
   }
@@ -242,13 +242,13 @@ export function isAuthenticated() {
 export function logoutUser() {
   try {
     // Clear all auth data
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('firebaseToken');
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('adminLoggedIn');
-    localStorage.removeItem('employeeLoggedIn');
-    localStorage.removeItem('businessOwnerLoggedIn');
-    localStorage.removeItem('systemAdminLoggedIn');
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('firebaseToken');
+    sessionStorage.removeItem('currentUser');
+    sessionStorage.removeItem('adminLoggedIn');
+    sessionStorage.removeItem('employeeLoggedIn');
+    sessionStorage.removeItem('businessOwnerLoggedIn');
+    sessionStorage.removeItem('systemAdminLoggedIn');
 
     // Sign out from Firebase
     if (auth && auth.currentUser) {

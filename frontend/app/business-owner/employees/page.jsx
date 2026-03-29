@@ -32,7 +32,7 @@ import { safeRedirect } from "@/lib/redirectUtils"
 const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 const fetchEmployees = async () => {
-  const token = localStorage.getItem("firebaseToken")
+  const token = sessionStorage.getItem("firebaseToken")
   const base = getApiBase()
   if (!token) throw new Error("Authentication token not found. Please login again.")
 
@@ -68,7 +68,7 @@ export default function BusinessOwnerEmployeesPage() {
   })
 
   useEffect(() => {
-    const current = localStorage.getItem("currentUser")
+    const current = sessionStorage.getItem("currentUser")
     if (!current) {
       safeRedirect(navigate, "/business-owner/login")
       return
@@ -89,7 +89,7 @@ export default function BusinessOwnerEmployeesPage() {
   })
 
   const error = queryError?.message === "SESSION_EXPIRED"
-    ? (() => { setTimeout(() => { localStorage.clear(); safeRedirect(navigate, "/business-owner/login") }, 2000); return "Session expired. Please login again." })()
+    ? (() => { setTimeout(() => { sessionStorage.clear(); safeRedirect(navigate, "/business-owner/login") }, 2000); return "Session expired. Please login again." })()
     : queryError?.message || null
 
   const filteredEmployees = useMemo(() => {
@@ -125,7 +125,7 @@ export default function BusinessOwnerEmployeesPage() {
     }
 
     setCreateLoading(true)
-    const token = localStorage.getItem("firebaseToken")
+    const token = sessionStorage.getItem("firebaseToken")
     const base = getApiBase()
 
     try {
@@ -199,7 +199,7 @@ export default function BusinessOwnerEmployeesPage() {
       return list.filter(emp => emp.id !== adminId)
     })
 
-    const token = localStorage.getItem("firebaseToken")
+    const token = sessionStorage.getItem("firebaseToken")
     const base = getApiBase()
 
     try {

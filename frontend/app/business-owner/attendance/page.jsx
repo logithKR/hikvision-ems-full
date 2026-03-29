@@ -13,7 +13,7 @@ import { safeRedirect } from "@/lib/redirectUtils"
 const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 const fetchAttendance = async (dateFilter) => {
-  const token = localStorage.getItem("firebaseToken")
+  const token = sessionStorage.getItem("firebaseToken")
   const base = getApiBase()
 
   const empRes = await fetch(`${base}/api/admin/employees?role=employee`, {
@@ -54,7 +54,7 @@ export default function BusinessOwnerAttendancePage() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
 
   useEffect(() => {
-    const current = localStorage.getItem("currentUser")
+    const current = sessionStorage.getItem("currentUser")
     if (!current) {
       safeRedirect(navigate, "/business-owner/login")
       return

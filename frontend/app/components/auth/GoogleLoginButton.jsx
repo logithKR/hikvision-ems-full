@@ -57,7 +57,7 @@ export default function GoogleLoginButton({ role = null }) {
                 throw new Error(`Access denied. You are logged in as ${data.user.role}, but this portal is for ${role}s.`);
             }
 
-            // 4. Store auth data in localStorage (required for layout route guards)
+            // 4. Store auth data in sessionStorage (required for layout route guards)
             storeAuthData({
                 isLoggedIn: true,
                 token: data.token,

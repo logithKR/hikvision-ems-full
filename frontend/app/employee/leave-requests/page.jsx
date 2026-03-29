@@ -42,7 +42,7 @@ export default function EmployeeLeavePage() {
     const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
-        if (!localStorage.getItem("currentUser")) {
+        if (!sessionStorage.getItem("currentUser")) {
             safeRedirect(navigate, "/employee/login")
         }
     }, [])

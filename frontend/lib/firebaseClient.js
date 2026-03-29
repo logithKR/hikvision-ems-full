@@ -4,7 +4,7 @@
  */
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signInWithCustomToken, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // ✅ Updated Firebase configuration with YOUR project
@@ -29,6 +29,12 @@ try {
   }
 
   auth = getAuth(app);
+  
+  // Set Firebase Auth persistence to SESSION so closing tabs logs out
+  setPersistence(auth, browserSessionPersistence)
+    .then(() => console.log('✅ Firebase auth persistence set to SESSION'))
+    .catch((error) => console.error('❌ Failed to set persistence:', error));
+    
   db = getFirestore(app);
   console.log('✅ Firebase initialized successfully for project:', firebaseConfig.projectId);
 } catch (error) {
@@ -57,7 +63,7 @@ export async function getValidIdToken() {
       if (token) {
         console.log('✅ Got fresh ID token from Firebase (first 50 chars):', token.substring(0, 50) + '...');
         try {
-          localStorage.setItem('firebaseToken', token);
+          sessionStorage.setItem('firebaseToken', token);
         } catch { }
         return token;
       }
@@ -69,18 +75,18 @@ export async function getValidIdToken() {
   }
 
   // Fallback to stored token
-  console.log('🔑 Falling back to localStorage token...');
+  console.log('🔑 Falling back to sessionStorage token...');
   try {
-    const stored = localStorage.getItem('firebaseToken') || '';
+    const stored = sessionStorage.getItem('firebaseToken') || '';
     if (stored) {
-      console.log('⚠️ Using STORED token from localStorage (first 50 chars):', stored.substring(0, 50) + '...');
+      console.log('⚠️ Using STORED token from sessionStorage (first 50 chars):', stored.substring(0, 50) + '...');
       console.log('⚠️ WARNING: This might be a CUSTOM token, not an ID token!');
     } else {
-      console.error('❌ No token found in localStorage either!');
+      console.error('❌ No token found in sessionStorage either!');
     }
     return stored;
   } catch {
-    console.error('❌ localStorage access failed');
+    console.error('❌ sessionStorage access failed');
     return '';
   }
 }

@@ -32,7 +32,7 @@ import { format } from "date-fns"
 const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 const fetchOrgDetails = async () => {
-  const token = localStorage.getItem("firebaseToken")
+  const token = sessionStorage.getItem("firebaseToken")
   const base = getApiBase()
   const orgRes = await fetch(`${base}/api/admin/organization`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -64,7 +64,7 @@ export default function BusinessOwnerProfilePage() {
   })
 
   useEffect(() => {
-    const current = localStorage.getItem("currentUser")
+    const current = sessionStorage.getItem("currentUser")
     if (!current) {
       safeRedirect(navigate, "/business-owner/login")
       return
@@ -91,7 +91,7 @@ export default function BusinessOwnerProfilePage() {
   })
 
   const handleSaveProfile = async () => {
-    const token = localStorage.getItem("firebaseToken")
+    const token = sessionStorage.getItem("firebaseToken")
     const base = getApiBase()
 
     try {
@@ -108,7 +108,7 @@ export default function BusinessOwnerProfilePage() {
         const data = await response.json()
         const updatedEmployee = data.employee
         const updatedUser = { ...currentUser, ...updatedEmployee }
-        localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+        sessionStorage.setItem("currentUser", JSON.stringify(updatedUser))
         setCurrentUser(updatedUser)
         setEditMode(false)
         alert("Profile updated successfully!")
@@ -144,7 +144,7 @@ export default function BusinessOwnerProfilePage() {
       return
     }
 
-    const token = localStorage.getItem("firebaseToken")
+    const token = sessionStorage.getItem("firebaseToken")
     const base = getApiBase()
 
     try {

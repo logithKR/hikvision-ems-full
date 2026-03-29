@@ -114,7 +114,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
       return res.json()
     },
     onSuccess: (_, variables) => {
-      toast.success(`Leave request ${variables.type}d successfully`)
+      toast.success(`Leave request ${variables.type === 'approve' ? 'approved' : 'rejected'} successfully`)
       queryClient.invalidateQueries({ queryKey: ['bo-pending-leaves'] })
       queryClient.invalidateQueries({ queryKey: ['bo-all-leaves'] })
       setActionDialog({ open: false, type: null, leave: null })

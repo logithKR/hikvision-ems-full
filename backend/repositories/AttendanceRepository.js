@@ -62,6 +62,12 @@ class AttendanceRepository extends BaseRepository {
           verifyMethod // Update verify method
         };
 
+        if (action === 'checkIn' && data.location) {
+          updateData.checkInLocation = data.location;
+        } else if (action === 'checkOut' && data.location) {
+          updateData.checkOutLocation = data.location;
+        }
+
         await docRef.update(updateData);
 
         // Fetch updated document
@@ -84,6 +90,12 @@ class AttendanceRepository extends BaseRepository {
           createdAt: timestamp,
           updatedAt: timestamp
         };
+
+        if (action === 'checkIn' && data.location) {
+          newData.checkInLocation = data.location;
+        } else if (action === 'checkOut' && data.location) {
+          newData.checkOutLocation = data.location;
+        }
 
         await docRef.set(newData);
 

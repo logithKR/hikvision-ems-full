@@ -1041,13 +1041,34 @@ export default function AdminEmployeesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-dept" className="text-sm font-medium text-slate-700">Department</Label>
-              <Input
-                id="edit-dept"
-                value={editForm.department || ""}
-                onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                className="border-slate-200 focus-visible:ring-blue-500"
-              />
+              <Label className="text-sm font-medium text-slate-700">Department</Label>
+              <Select
+                value={editForm.department || "__none__"}
+                onValueChange={(val) => {
+                  if (val === "__none__") {
+                    setEditForm({ ...editForm, department: "" })
+                  } else {
+                    setEditForm({ ...editForm, department: val })
+                  }
+                }}
+              >
+                <SelectTrigger className="border-slate-200">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">
+                    <span className="text-slate-400 italic">No Department</span>
+                  </SelectItem>
+                  {orgDepartments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.name}>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3 w-3 text-blue-500" />
+                        <span>{dept.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-phone" className="text-sm font-medium text-slate-700">Phone</Label>
@@ -1298,35 +1319,21 @@ export default function AdminEmployeesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">Department</Label>
-                <Select
-                  value={createForm.departmentId || "__none__"}
-                  onValueChange={(val) => {
-                    if (val === "__none__") {
-                      setCreateForm({ ...createForm, department: "", departmentId: "" })
-                    } else {
-                      const dept = orgDepartments.find(d => d.id === val)
-                      setCreateForm({ ...createForm, department: dept?.name || "", departmentId: val })
-                    }
-                  }}
-                >
-                  <SelectTrigger className="border-slate-200">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">
-                      <span className="text-slate-400 italic">No Department</span>
-                    </SelectItem>
+                <div className="relative">
+                  <Input
+                    placeholder="e.g. Sales, Engineering"
+                    value={createForm.department}
+                    onChange={(e) => setCreateForm({ ...createForm, department: e.target.value })}
+                    className="border-slate-200 focus-visible:ring-blue-500 pl-9"
+                    list="departments-list"
+                  />
+                  <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <datalist id="departments-list">
                     {orgDepartments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-3 w-3 text-blue-500" />
-                          <span>{dept.name}</span>
-                          <span className="text-xs text-slate-400">({dept.memberCount || 0}/{dept.maxEmployees || '∞'})</span>
-                        </div>
-                      </SelectItem>
+                      <option key={dept.id} value={dept.name} />
                     ))}
-                  </SelectContent>
-                </Select>
+                  </datalist>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">Role</Label>

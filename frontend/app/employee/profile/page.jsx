@@ -127,9 +127,9 @@ export default function EmployeeProfilePage() {
           address: updatedEmployee.address || prev.address
         }))
 
-        // Also update localStorage for persistence across navigation
-        const storedUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
-        localStorage.setItem('currentUser', JSON.stringify({
+        // Also update sessionStorage for persistence across navigation
+        const storedUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}')
+        sessionStorage.setItem('currentUser', JSON.stringify({
           ...storedUser,
           phone: updatedEmployee.phone,
           address: updatedEmployee.address

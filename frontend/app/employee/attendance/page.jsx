@@ -197,7 +197,7 @@ export default function EmployeeAttendancePage() {
   const [locationError, setLocationError] = useState(null)
 
   useEffect(() => {
-    if (!localStorage.getItem("currentUser")) {
+    if (!sessionStorage.getItem("currentUser")) {
       safeRedirect(navigate, "/employee/login")
     }
   }, [])
@@ -390,15 +390,17 @@ export default function EmployeeAttendancePage() {
                 </Button>
               ) : !todayRecord?.checkOut ? (
                 <>
-                  <Button
-                    onClick={() => handleAction(isOnBreak ? 'breakOut' : 'breakIn')}
-                    disabled={actionLoading || isFetching}
-                    variant="outline"
-                    className={`min-w-[150px] ${isOnBreak ? 'border-amber-500 text-amber-700' : 'border-blue-500 text-blue-700'}`}
-                  >
-                    <Coffee className="mr-2 h-4 w-4" />
-                    {isOnBreak ? "End Break" : "Start Break"}
-                  </Button>
+                  {(!todayRecord?.breakIn || (todayRecord?.breakIn && !todayRecord?.breakOut)) && (
+                    <Button
+                      onClick={() => handleAction(isOnBreak ? 'breakOut' : 'breakIn')}
+                      disabled={actionLoading || isFetching}
+                      variant="outline"
+                      className={`min-w-[150px] ${isOnBreak ? 'border-amber-500 text-amber-700' : 'border-blue-500 text-blue-700'}`}
+                    >
+                      <Coffee className="mr-2 h-4 w-4" />
+                      {isOnBreak ? "End Break" : "Start Break"}
+                    </Button>
+                  )}
                   <Button
                     onClick={() => handleAction('checkOut')}
                     disabled={actionLoading || isFetching}

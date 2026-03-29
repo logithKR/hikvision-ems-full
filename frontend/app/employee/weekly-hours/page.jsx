@@ -23,7 +23,7 @@ export default function WeeklyHoursPage() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (!localStorage.getItem("employeeLoggedIn")) {
+    if (!sessionStorage.getItem("employeeLoggedIn")) {
       safeRedirect(navigate, "/employee/login")
     }
   }, [navigate])
@@ -41,8 +41,8 @@ export default function WeeklyHoursPage() {
   }), [data])
 
   if (queryError?.message === "SESSION_EXPIRED") {
-    localStorage.removeItem("employeeLoggedIn")
-    localStorage.removeItem("firebaseToken")
+    sessionStorage.removeItem("employeeLoggedIn")
+    sessionStorage.removeItem("firebaseToken")
     safeRedirect(navigate, "/employee/login")
   }
 
