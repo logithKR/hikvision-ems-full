@@ -10,7 +10,7 @@ import { Calendar, Clock, UserCheck, UserX, Coffee, LogOut, ArrowLeft, RefreshCw
 import { format } from "date-fns"
 import { safeRedirect } from "@/lib/redirectUtils"
 
-const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:3000"
+const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
 const fetchAttendance = async (dateFilter) => {
   const token = sessionStorage.getItem("firebaseToken")

@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import { safeRedirect } from "@/lib/redirectUtils"
 
-const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:3000"
+const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
 const fetchEmployees = async () => {
   const token = sessionStorage.getItem("firebaseToken")

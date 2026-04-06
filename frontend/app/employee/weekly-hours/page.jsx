@@ -10,7 +10,7 @@ import { getValidIdToken } from "@/lib/firebaseClient"
 const fetchWeeklyHours = async () => {
   const token = await getValidIdToken()
   if (!token) throw new Error("Not authenticated")
-  const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/attendance/weekly-hours`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/attendance/weekly-hours`, {
     headers: { 'Authorization': `Bearer ${token}` }
   })
   if (response.status === 401) throw new Error("SESSION_EXPIRED")

@@ -53,7 +53,7 @@ export default function AdminAttendancePage() {
     queryFn: async () => {
       const token = await getValidIdToken()
       if (!token) throw new Error("Authentication failed.")
-      const base = import.meta.env.VITE_API_URL || "http://localhost:3000"
+      const base = import.meta.env.VITE_API_URL || ""
       const response = await fetch(`${base}/api/admin/attendance?date=${dateFilter}`, {
         headers: { Authorization: `Bearer ${token}` },
       })

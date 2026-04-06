@@ -81,7 +81,7 @@ export default function AdminProfilePage() {
   }, [navigate])
 
   const getApiBase = () => {
-    return import.meta.env.VITE_API_URL || "http://localhost:3000"
+    return import.meta.env.VITE_API_URL || ""
   }
 
   const loadOrganizationDetails = async () => {

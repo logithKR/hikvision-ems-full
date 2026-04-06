@@ -29,7 +29,7 @@ import {
 import { safeRedirect } from "@/lib/redirectUtils"
 import { format } from "date-fns"
 
-const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:3000"
+const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
 const fetchOrgDetails = async () => {
   const token = sessionStorage.getItem("firebaseToken")
