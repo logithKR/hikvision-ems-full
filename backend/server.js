@@ -62,21 +62,21 @@ app.get(['/api/health', '/health'], (req, res) => {
   });
 });
 
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Hikvision EMS API',
-    version: '2.0.0',
-    status: 'running',
-    endpoints: {
-      health: '/api/health',
-      auth: '/api/auth',
-      admin: '/api/admin',
-      attendance: '/api/attendance',
-      leave: '/api/leave',
-      'system-admin': '/api/system-admin'
-    }
-  });
-});
+// app.get('/', (req, res) => {
+//   res.json({
+//     message: 'Hikvision EMS API',
+//     version: '2.0.0',
+//     status: 'running',
+//     endpoints: {
+//       health: '/api/health',
+//       auth: '/api/auth',
+//       admin: '/api/admin',
+//       attendance: '/api/attendance',
+//       leave: '/api/leave',
+//       'system-admin': '/api/system-admin'
+//     }
+//   });
+// });
 
 // ========================================
 // API ROUTES
