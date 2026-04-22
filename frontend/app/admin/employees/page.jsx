@@ -155,6 +155,9 @@ export default function AdminEmployeesPage() {
       setEditDialogOpen(false)
       setEditingEmployee(null)
     },
+    onError: () => {
+      // Error is displayed inline in the dialog via updateMutation.error
+    },
   })
 
   // ── Delete Employee Mutation ────────────────────
@@ -481,7 +484,9 @@ export default function AdminEmployeesPage() {
       phone: emp.phone || "",
       position: emp.position || "",
       role: emp.role || "employee",
+      hikvisionEmployeeId: emp.hikvisionEmployeeId || "",
     })
+    updateMutation.reset() // clear any previous error
     setEditDialogOpen(true)
   }
 
@@ -1104,6 +1109,13 @@ export default function AdminEmployeesPage() {
               <p className="text-[10px] text-slate-400">Must match the Employee No. registered on the Hikvision device.</p>
             </div>
           </div>
+          {/* Show error inline inside the dialog */}
+          {updateMutation.error && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mx-0 mt-2">
+              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-red-700">{updateMutation.error.message}</p>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-slate-200">
               Cancel

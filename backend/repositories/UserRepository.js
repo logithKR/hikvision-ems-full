@@ -696,6 +696,32 @@ class UserRepository extends BaseRepository {
       throw new Error(`Failed to get dept heads: ${error.message}`);
     }
   }
+  /**
+   * Find user by their Hikvision device employee ID within an organization.
+   * Used to enforce uniqueness — one Hikvision ID = one EMS user per org.
+   * @param {string} orgId - Organization ID
+   * @param {string} hikvisionEmployeeId - The ID from the physical device
+   * @param {string|null} excludeUserId - Optional: skip this user (for update checks)
+   * @returns {Promise<Object|null>}
+   */
+  async findByHikvisionId(orgId, hikvisionEmployeeId, excludeUserId = null) {
+    try {
+      const snapshot = await this.getCollection(orgId)
+        .where('hikvisionEmployeeId', '==', hikvisionEmployeeId)
+        .where('isActive', '==', true)
+        .limit(2)
+        .get();
+
+      const matches = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(u => u.id !== excludeUserId); // exclude self when updating
+
+      return matches.length > 0 ? matches[0] : null;
+    } catch (error) {
+      console.error(`❌ [UserRepository] FindByHikvisionId error:`, error);
+      return null;
+    }
+  }
 }
 
 module.exports = UserRepository;

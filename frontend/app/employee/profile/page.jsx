@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   User, Mail, Building, Calendar,
-  Save, Loader2, UserCog
+  Save, Loader2, UserCog, Fingerprint
 } from "lucide-react"
 import { format } from "date-fns"
 import { safeRedirect } from "@/lib/redirectUtils"
@@ -37,7 +37,8 @@ export default function EmployeeProfilePage() {
     hireDate: "",
     salary: "",
     managerName: "",
-    managerEmail: ""
+    managerEmail: "",
+    hikvisionEmployeeId: ""
   })
 
   // Password Change
@@ -86,7 +87,8 @@ export default function EmployeeProfilePage() {
           hireDate: user.createdAt || "",
           salary: user.salary ? `₹${user.salary.toLocaleString()}` : "Not specified",
           managerName: user.managerName || "",
-          managerEmail: user.managerEmail || ""
+          managerEmail: user.managerEmail || "",
+          hikvisionEmployeeId: user.hikvisionEmployeeId || ""
         })
       }
     } catch (error) {
@@ -336,6 +338,15 @@ export default function EmployeeProfilePage() {
                         <div className="flex items-center px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-slate-500">
                           <Building className="h-4 w-4 mr-2" />
                           {profileData.position}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Attendance Device ID (Read-Only)</Label>
+                        <div className="flex items-center px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-slate-500">
+                          <Fingerprint className="h-4 w-4 mr-2 shrink-0" />
+                          <span className="font-mono text-sm">
+                            {profileData.hikvisionEmployeeId || "Not linked to a device yet"}
+                          </span>
                         </div>
                       </div>
                       {profileData.managerName && (

@@ -44,6 +44,16 @@ router.post('/employees', authenticateToken, requireAdminOrBusinessOwner, async 
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
+    // 🔒 UNIQUENESS: One Hikvision ID can only be assigned to one active user per org
+    if (hikvisionEmployeeId) {
+      const existing = await userRepo.findByHikvisionId(organizationId, hikvisionEmployeeId);
+      if (existing) {
+        return res.status(409).json({
+          error: `Hikvision Device ID "${hikvisionEmployeeId}" is already assigned to ${existing.name}. Each device ID can only map to one employee.`
+        });
+      }
+    }
+
     // Default to 'employee' if role not provided
     const targetRole = role || 'employee';
 
@@ -196,6 +206,16 @@ router.put('/employees/:id', authenticateToken, requireAdmin, async (req, res) =
     const { organizationId } = req.user;
     const { id } = req.params;
     const updateData = req.body;
+
+    // 🔒 UNIQUENESS: If a new Hikvision ID is being set, ensure no other active user already has it
+    if (updateData.hikvisionEmployeeId) {
+      const existing = await userRepo.findByHikvisionId(organizationId, updateData.hikvisionEmployeeId, id);
+      if (existing) {
+        return res.status(409).json({
+          error: `Hikvision Device ID "${updateData.hikvisionEmployeeId}" is already assigned to ${existing.name}. Each device ID can only map to one employee.`
+        });
+      }
+    }
 
     const employee = await employeeService.updateEmployee(organizationId, id, updateData);
 

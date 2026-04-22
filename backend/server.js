@@ -42,6 +42,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {
+  // Do not log the massive hikvision heartbeat requests to keep terminal clean
+  if (req.originalUrl && req.originalUrl.includes('/api/event')) return next();
+  
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${req.method} ${req.path}`);
   next();

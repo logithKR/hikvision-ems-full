@@ -327,37 +327,44 @@ export default function BusinessOwnerAttendancePage() {
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {(() => {
-                          const checkInEvent = record.events?.find(e => e.type === 'checkIn' && e.location);
-                          const checkOutEvent = record.events?.find(e => e.type === 'checkOut' && e.location);
+                          const renderLoc = (loc, label, colorClass) => {
+                            if (!loc) return null;
+                            if (typeof loc === 'string') {
+                              return (
+                                <div className={`flex items-center gap-1 text-xs ${colorClass}`}>
+                                  <MapPin className="h-3 w-3 shrink-0" />
+                                  <span>{label}: {loc}</span>
+                                </div>
+                              );
+                            }
+                            if (loc.lat && loc.lng) {
+                              return (
+                                <a
+                                  href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`inline-flex items-center gap-1 text-xs ${colorClass} hover:underline`}
+                                  title={`Check ${label}`}
+                                >
+                                  <MapPin className="h-3 w-3" />
+                                  {label}: Map
+                                </a>
+                              );
+                            }
+                            return null;
+                          };
 
-                          if (!checkInEvent && !checkOutEvent) return <span className="text-slate-400 text-xs">-</span>;
+                          const inEvent = record.events?.find(e => e.type === 'checkIn' && e.location);
+                          const outEvent = record.events?.find(e => e.type === 'checkOut' && e.location);
+                          const inLoc = inEvent?.location || record.checkInLocation || null;
+                          const outLoc = outEvent?.location || record.checkOutLocation || null;
+
+                          if (!inLoc && !outLoc) return <span className="text-slate-400 text-xs">-</span>;
 
                           return (
-                            <div className="flex flex-col gap-1 items-start">
-                              {checkInEvent?.location && (
-                                <a
-                                  href={`https://www.google.com/maps?q=${checkInEvent.location.lat},${checkInEvent.location.lng}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
-                                  title="Check In Location"
-                                >
-                                  <MapPin className="h-3 w-3" />
-                                  In
-                                </a>
-                              )}
-                              {checkOutEvent?.location && (
-                                <a
-                                  href={`https://www.google.com/maps?q=${checkOutEvent.location.lat},${checkOutEvent.location.lng}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700 hover:underline"
-                                  title="Check Out Location"
-                                >
-                                  <MapPin className="h-3 w-3" />
-                                  Out
-                                </a>
-                              )}
+                            <div className="flex flex-col gap-1">
+                              {renderLoc(inLoc, 'In', 'text-emerald-600')}
+                              {renderLoc(outLoc, 'Out', 'text-red-600')}
                             </div>
                           );
                         })()}

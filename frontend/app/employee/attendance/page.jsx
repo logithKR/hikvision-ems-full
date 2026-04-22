@@ -477,25 +477,52 @@ export default function EmployeeAttendancePage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {/* Location Cell - check events array for location data */}
+                        {/* Location Cell - show both Check In and Check Out locations */}
                         {(() => {
-                          const checkInEvent = record.events?.find(e => e.type === 'checkIn' && e.location);
-                          if (checkInEvent?.location) {
-                            const { lat, lng } = checkInEvent.location;
-                            return (
-                              <a
-                                href={`https://www.google.com/maps?q=${lat},${lng}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                                title={`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}, Accuracy: ${checkInEvent.location.accuracy ? Math.round(checkInEvent.location.accuracy) + 'm' : 'N/A'}`}
-                              >
-                                <MapPin className="h-3 w-3" />
-                                View Map
-                              </a>
-                            );
-                          }
-                          return <span className="text-muted-foreground text-xs">-</span>;
+                          // Helper: render one location entry
+                          const renderLoc = (loc, label, colorClass) => {
+                            if (!loc) return null;
+                            // String label (e.g. from Hikvision)
+                            if (typeof loc === 'string') {
+                              return (
+                                <div className={`flex items-center gap-1 text-xs ${colorClass}`}>
+                                  <MapPin className="h-3 w-3 shrink-0" />
+                                  <span>{label}: {loc}</span>
+                                </div>
+                              );
+                            }
+                            // GPS coords object { lat, lng, accuracy }
+                            if (loc.lat && loc.lng) {
+                              return (
+                                <a
+                                  href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`inline-flex items-center gap-1 text-xs ${colorClass} hover:underline`}
+                                  title={`Lat: ${loc.lat.toFixed(6)}, Lng: ${loc.lng.toFixed(6)}${loc.accuracy ? `, ±${Math.round(loc.accuracy)}m` : ''}`}
+                                >
+                                  <MapPin className="h-3 w-3 shrink-0" />
+                                  {label}: View Map
+                                </a>
+                              );
+                            }
+                            return null;
+                          };
+
+                          // Extract locations — check events[] first, then fallback fields
+                          const inEvent = record.events?.find(e => e.type === 'checkIn' && e.location);
+                          const outEvent = record.events?.find(e => e.type === 'checkOut' && e.location);
+                          const inLoc = inEvent?.location || record.checkInLocation || null;
+                          const outLoc = outEvent?.location || record.checkOutLocation || null;
+
+                          if (!inLoc && !outLoc) return <span className="text-muted-foreground text-xs">-</span>;
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              {renderLoc(inLoc, 'In', 'text-emerald-600')}
+                              {renderLoc(outLoc, 'Out', 'text-red-600')}
+                            </div>
+                          );
                         })()}
                       </TableCell>
                       <TableCell>

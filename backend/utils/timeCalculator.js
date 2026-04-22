@@ -199,29 +199,30 @@ class TimeCalculator {
   }
 
   /**
-   * Get current time in HH:MM:SS format
+   * Get current time in 12-hour AM/PM format in IST
+   * e.g. "09:32:15 AM" or "02:45:00 PM"
    * @returns {string}
    */
   static getCurrentTime() {
     const now = new Date();
-    return now.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    // Always use IST regardless of server timezone
+    return now.toLocaleTimeString('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false 
+      hour12: true
     });
   }
 
   /**
-   * Get current date in YYYY-MM-DD format
+   * Get current date in YYYY-MM-DD format in IST
    * @returns {string}
    */
   static getCurrentDate() {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    // Use en-CA locale with IST timezone — gives YYYY-MM-DD directly
+    return now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   }
 
   /**
