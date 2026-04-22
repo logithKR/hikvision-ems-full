@@ -51,7 +51,7 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
-const getApiBase = () => import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const getApiBase = () => import.meta.env.VITE_API_URL || ''
 
 export default function BusinessOwnerLeaveRequestsPage() {
   const navigate = useNavigate()

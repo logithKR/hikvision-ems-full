@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 require('dotenv').config();
 
 // Import container (initializes all services and repositories)
@@ -64,21 +65,21 @@ app.get(['/api/health', '/health'], (req, res) => {
   });
 });
 
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Hikvision EMS API',
-    version: '2.0.0',
-    status: 'running',
-    endpoints: {
-      health: '/api/health',
-      auth: '/api/auth',
-      admin: '/api/admin',
-      attendance: '/api/attendance',
-      leave: '/api/leave',
-      'system-admin': '/api/system-admin'
-    }
-  });
-});
+// app.get('/', (req, res) => {
+//   res.json({
+//     message: 'Hikvision EMS API',
+//     version: '2.0.0',
+//     status: 'running',
+//     endpoints: {
+//       health: '/api/health',
+//       auth: '/api/auth',
+//       admin: '/api/admin',
+//       attendance: '/api/attendance',
+//       leave: '/api/leave',
+//       'system-admin': '/api/system-admin'
+//     }
+//   });
+// });
 
 // ========================================
 // API ROUTES
@@ -104,11 +105,19 @@ app.use('/api/system-admin', systemAdminRoutes);
 app.use('/api/event', hikvisionRoutes);
 
 // ========================================
+// STATIC SERVING (PRODUCTION)
+// ========================================
+if (process.env.NODE_ENV === 'production') {
+  console.log('📦 Production mode: Serving frontend built static files');
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+}
+
+// ========================================
 // ERROR HANDLING
 // ========================================
 
-// 404 handler
-app.use('*', (req, res) => {
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
     message: `${req.method} ${req.originalUrl} does not exist`,
@@ -150,6 +159,15 @@ const io = new Server(server, {
 
 // Initialize Socket.io in container
 container.initSocket(io);
+
+// ========================================
+// SPA CATCH-ALL ROUTE (PRODUCTION)
+// ========================================
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  });
+}
 
 server.listen(PORT, () => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

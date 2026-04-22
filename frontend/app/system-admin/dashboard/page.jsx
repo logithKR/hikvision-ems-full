@@ -39,7 +39,7 @@ export default function SystemAdminDashboardPage() {
         queryFn: async () => {
             const token = await getValidIdToken()
             if (!token) throw new Error("Authentication token not found. Please login again.")
-            const u = import.meta.env.VITE_API_URL || "http://localhost:3000"
+            const u = import.meta.env.VITE_API_URL || ""
             const base = u.endsWith('/api') ? u : `${u}/api`
             const response = await fetch(`${base}/system-admin/dashboard/stats`, {
                 headers: { Authorization: `Bearer ${token}` },

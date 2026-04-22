@@ -35,7 +35,7 @@ export default function EmployeeDashboardPage() {
     setCurrentUser(user)
   }, [navigate])
 
-  const getApiBase = () => import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const getApiBase = () => import.meta.env.VITE_API_URL || ''
 
   const { data: dashboardData = {}, isLoading: loading, error: queryError } = useQuery({
     queryKey: ['emp-dashboard'],

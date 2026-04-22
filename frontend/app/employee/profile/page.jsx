@@ -58,7 +58,7 @@ export default function EmployeeProfilePage() {
   }, [])
 
   const getApiBase = () => {
-    const url = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    const url = import.meta.env.VITE_API_URL || ''
     return url.endsWith('/api') ? url : `${url}/api`
   }
 

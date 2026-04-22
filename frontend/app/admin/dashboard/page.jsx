@@ -36,7 +36,7 @@ export default function AdminDashboardPage() {
     queryFn: async () => {
       const token = await getValidIdToken()
       if (!token) throw new Error("Authentication failed. Please login again.")
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000"
+      const apiBase = import.meta.env.VITE_API_URL || ""
       const response = await fetch(`${apiBase}/api/admin/dashboard/stats`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       })
@@ -53,7 +53,7 @@ export default function AdminDashboardPage() {
     queryFn: async () => {
       const token = await getValidIdToken()
       if (!token) throw new Error("Auth failed")
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000"
+      const apiBase = import.meta.env.VITE_API_URL || ""
       const response = await fetch(`${apiBase}/api/admin/employees`, {
         headers: { Authorization: `Bearer ${token}` },
       })

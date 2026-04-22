@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const getApiBase = () => {
-    const url = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    const url = import.meta.env.VITE_API_URL || ''
     return url.endsWith('/api') ? url : `${url}/api`
 }
 

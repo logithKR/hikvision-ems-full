@@ -13,7 +13,7 @@ import {
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
 
-const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:3000"
+const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
 export default function AdminOrgChartPage() {
     const navigate = useNavigate()

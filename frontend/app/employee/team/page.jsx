@@ -30,7 +30,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
 import { useOptimisticQuery } from "@/app/hooks/useOptimisticQuery"
 
-const getApiBase = () => import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const getApiBase = () => import.meta.env.VITE_API_URL || ''
 
 export default function TeamDashboard() {
     const navigate = useNavigate()

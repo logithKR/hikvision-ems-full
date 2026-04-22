@@ -25,7 +25,7 @@ import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
 
 const getApiBase = () => {
-    const url = import.meta.env.VITE_API_URL || "http://localhost:3000"
+    const url = import.meta.env.VITE_API_URL || ""
     return url.endsWith('/api') ? url : `${url}/api`
 }
 
