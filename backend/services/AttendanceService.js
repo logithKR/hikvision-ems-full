@@ -36,13 +36,10 @@ class AttendanceService {
    * @returns {Promise<Object>} Updated attendance record
    */
   async recordAttendance(orgId, userId, userName, action, options = {}) {
-    console.log(`🕰️ AttendanceService.recordAttendance() - User: ${userName}, Action: ${action}`);
 
     try {
       const date = TimeCalculator.getCurrentDate();
       const time = TimeCalculator.getCurrentTime();
-
-      console.log(`⏰ Recording ${action} at ${time} on ${date}`);
 
       // Create or update attendance record
       const attendance = await this.attendanceRepo.createOrUpdate(orgId, {
@@ -61,7 +58,6 @@ class AttendanceService {
         await this.calculateAndUpdateHours(orgId, attendance);
       }
 
-      console.log(`✅ AttendanceService: Successfully recorded ${action} for ${userName}`);
 
       // Notification
       if (this.notificationService) {
@@ -94,7 +90,6 @@ class AttendanceService {
       // Strategy 1: Calculate from events (preferred)
       if (attendance.events && attendance.events.length > 0) {
         calculated = TimeCalculator.calculateFromEvents(attendance.events);
-        console.log(`⏱️ Calculated hours from events: ${calculated.totalHours}`);
       }
       // Strategy 2: Calculate from time strings (fallback)
       else if (attendance.checkIn && attendance.checkOut) {
@@ -137,7 +132,6 @@ class AttendanceService {
    * @returns {Promise<Array>} Attendance records
    */
   async getEmployeeRecords(orgId, userId, options = {}) {
-    console.log(`🔍 AttendanceService.getEmployeeRecords() - User: ${userId}`);
 
     try {
       const records = await this.attendanceRepo.getUserRecords(orgId, userId, {
@@ -151,7 +145,6 @@ class AttendanceService {
         records.map(record => this.fixRecordIfNeeded(orgId, record))
       );
 
-      console.log(`✅ AttendanceService: Found ${fixedRecords.length} records`);
       return fixedRecords;
     } catch (error) {
       console.error(`❌ AttendanceService: Error getting employee records:`, error);
@@ -173,7 +166,6 @@ class AttendanceService {
       return record;
     }
 
-    console.log(`🔧 Fixing record: ${record.id}`);
     return await this.calculateAndUpdateHours(orgId, record);
   }
 
@@ -184,29 +176,17 @@ class AttendanceService {
    * @returns {Promise<Object>} Today's status
    */
   async getTodayStatus(orgId, userId) {
-    console.log(`📅 AttendanceService.getTodayStatus() - User: ${userId}`);
 
     try {
       const today = TimeCalculator.getCurrentDate();
       const record = await this.attendanceRepo.getTodayRecord(orgId, userId, today);
 
       if (!record) {
-        console.log(`📋 No attendance record for today`);
-        return {
-          status: 'not_started',
-          date: today
-        };
+        return { status: 'not_started', date: today };
       }
 
       // Fix hours if needed
       const fixedRecord = await this.fixRecordIfNeeded(orgId, record);
-
-      console.log(`✅ Today's status:`, {
-        checkIn: fixedRecord.checkIn,
-        checkOut: fixedRecord.checkOut,
-        hours: fixedRecord.totalHours
-      });
-
       return fixedRecord;
     } catch (error) {
       console.error(`❌ AttendanceService: Error getting today status:`, error);
@@ -221,7 +201,6 @@ class AttendanceService {
    * @returns {Promise<Array>} Attendance records
    */
   async getAllRecords(orgId, filters = {}) {
-    console.log('🔍 AttendanceService.getAllRecords() - Filters:', filters);
 
     try {
       let records;
@@ -237,7 +216,6 @@ class AttendanceService {
         records = await this.attendanceRepo.findAll(orgId, { limit: 100 });
       }
 
-      console.log(`✅ AttendanceService: Found ${records.length} records`);
       return records;
     } catch (error) {
       console.error('❌ AttendanceService: Error getting all records:', error);
@@ -254,7 +232,6 @@ class AttendanceService {
    * @returns {Promise<Object>} Weekly stats
    */
   async getWeeklyHours(orgId, userId, weekStart, weekEnd) {
-    console.log(`📊 AttendanceService.getWeeklyHours() - User: ${userId}, Week: ${weekStart} to ${weekEnd}`);
 
     try {
       const records = await this.attendanceRepo.getWeeklyRecords(orgId, userId, weekStart, weekEnd);
@@ -299,7 +276,6 @@ class AttendanceService {
         }
       };
 
-      console.log(`✅ Weekly stats:`, result.stats);
       return result;
     } catch (error) {
       console.error(`❌ AttendanceService: Error getting weekly hours:`, error);
@@ -314,11 +290,8 @@ class AttendanceService {
    * @returns {Promise<Object>} Summary
    */
   async getSummary(orgId, date) {
-    console.log(`📊 AttendanceService.getSummary() - Date: ${date}`);
-
     try {
       const summary = await this.attendanceRepo.getDailySummary(orgId, date);
-      console.log(`✅ Summary:`, summary);
       return summary;
     } catch (error) {
       console.error(`❌ AttendanceService: Error getting summary:`, error);

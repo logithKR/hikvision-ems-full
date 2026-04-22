@@ -74,7 +74,6 @@ class AttendanceRepository extends BaseRepository {
         const updatedDoc = await docRef.get();
         const result = { id: updatedDoc.id, ...updatedDoc.data() };
 
-        console.log(`✅ [AttendanceRepository] Updated attendance: ${attendanceId} - ${action}`);
         return result;
       } else {
         // Create new record
@@ -98,8 +97,6 @@ class AttendanceRepository extends BaseRepository {
         }
 
         await docRef.set(newData);
-
-        console.log(`✅ [AttendanceRepository] Created attendance: ${attendanceId}`);
         return newData;
       }
     } catch (error) {
@@ -119,15 +116,8 @@ class AttendanceRepository extends BaseRepository {
     try {
       const attendanceId = `${userId}_${date}`;
       const doc = await this.getCollection(orgId).doc(attendanceId).get();
-
-      if (!doc.exists) {
-        console.log(`⚠️ [AttendanceRepository] No attendance record for user ${userId} on ${date}`);
-        return null;
-      }
-
-      const data = { id: doc.id, ...doc.data() };
-      console.log(`✅ [AttendanceRepository] Found attendance record: ${attendanceId}`);
-      return data;
+      if (!doc.exists) return null;
+      return { id: doc.id, ...doc.data() };
     } catch (error) {
       console.error(`❌ [AttendanceRepository] GetTodayRecord error:`, error);
       throw new Error(`Failed to get today's record: ${error.message}`);
@@ -189,7 +179,6 @@ class AttendanceRepository extends BaseRepository {
         records = records.slice(0, options.limit);
       }
 
-      console.log(`✅ [AttendanceRepository] Found ${records.length} records for user ${userId}`);
       return records;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] GetUserRecords error:`, error);
@@ -214,7 +203,6 @@ class AttendanceRepository extends BaseRepository {
         ...doc.data()
       }));
 
-      console.log(`✅ [AttendanceRepository] Found ${records.length} attendance records for ${date}`);
       return records;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] GetByDate error:`, error);
@@ -244,7 +232,6 @@ class AttendanceRepository extends BaseRepository {
       // Sort by date
       records.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      console.log(`✅ [AttendanceRepository] Found ${records.length} records from ${startDate} to ${endDate}`);
       return records;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] GetByDateRange error:`, error);
@@ -282,7 +269,6 @@ class AttendanceRepository extends BaseRepository {
       const updatedDoc = await docRef.get();
       const result = { id: updatedDoc.id, ...updatedDoc.data() };
 
-      console.log(`✅ [AttendanceRepository] Updated hours for ${attendanceId}: ${hoursData.hoursWorked}h`);
       return result;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] UpdateHours error:`, error);
@@ -351,8 +337,6 @@ class AttendanceRepository extends BaseRepository {
       }
 
       await docRef.delete();
-
-      console.log(`✅ [AttendanceRepository] Deleted attendance: ${attendanceId}`);
       return true;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] Delete error:`, error);
@@ -391,7 +375,6 @@ class AttendanceRepository extends BaseRepository {
         summary.averageHours = (summary.totalHoursWorked / summary.presentCount).toFixed(2);
       }
 
-      console.log(`✅ [AttendanceRepository] Daily summary for ${date}:`, summary);
       return summary;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] GetDailySummary error:`, error);
@@ -414,7 +397,6 @@ class AttendanceRepository extends BaseRepository {
         .get();
 
       const count = snapshot.size;
-      console.log(`✅ [AttendanceRepository] Count from ${startDate} to ${endDate}: ${count}`);
       return count;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] CountInDateRange error:`, error);
@@ -468,7 +450,6 @@ class AttendanceRepository extends BaseRepository {
         ...doc.data()
       }));
 
-      console.log(`✅ [AttendanceRepository] Found ${records.length} attendance records`);
       return records;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] FindAll error:`, error);
@@ -496,7 +477,6 @@ class AttendanceRepository extends BaseRepository {
 
       await batch.commit();
 
-      console.log(`✅ [AttendanceRepository] Batch updated ${updates.length} records`);
       return true;
     } catch (error) {
       console.error(`❌ [AttendanceRepository] BatchUpdate error:`, error);
