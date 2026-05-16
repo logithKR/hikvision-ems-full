@@ -38,8 +38,8 @@ app.use(cors({
   origin: FRONTEND_URL,
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -186,8 +186,8 @@ server.listen(PORT, () => {
 // ========================================
 // GRACEFUL SHUTDOWN
 // ========================================
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down gracefully...');
+const gracefulShutdown = async (signal) => {
+  console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
 
   try {
     // Close server
@@ -204,7 +204,10 @@ process.on('SIGINT', async () => {
 
   console.log('👋 Server stopped');
   process.exit(0);
-});
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -213,7 +216,7 @@ process.on('uncaughtException', (error) => {
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.error(error);
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  process.exit(1);
+  // Removed process.exit(1) to prevent the site from ever crashing
 });
 
 // Handle unhandled promise rejections
@@ -224,7 +227,7 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Promise:', promise);
   console.error('Reason:', reason);
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  process.exit(1);
+  // Removed process.exit(1) to prevent the site from ever crashing
 });
 
 module.exports = app;

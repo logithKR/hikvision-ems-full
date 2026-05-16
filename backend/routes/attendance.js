@@ -11,6 +11,11 @@ const statisticsService = container.getStatisticsService();
 router.post('/record', authenticateToken, requireEmployee, async (req, res) => {
   try {
     const { action, employeeId, location } = req.body;
+    
+    const VALID_ACTIONS = ['checkIn', 'checkOut', 'breakIn', 'breakOut'];
+    if (!VALID_ACTIONS.includes(action)) {
+      return res.status(400).json({ error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}` });
+    }
     // Don't declare attendanceService again here!
 
     let userId = req.user.uid;

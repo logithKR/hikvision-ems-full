@@ -691,26 +691,38 @@ class LeaveService {
 
       // Define leave quotas (can be fetched from organization settings)
       const quotas = {
+        vacation: 15,
         sick: 10,
-        casual: 12,
-        vacation: 15
+        casual: 5,
+        emergency: 3,
+        other: 2
       };
 
       const balance = {
+        vacation: {
+          total: quotas.vacation,
+          used: stats.daysUsed.vacation || 0,
+          remaining: Math.max(0, quotas.vacation - (stats.daysUsed.vacation || 0))
+        },
         sick: {
           total: quotas.sick,
-          used: stats.daysUsed.sick,
-          remaining: Math.max(0, quotas.sick - stats.daysUsed.sick)
+          used: stats.daysUsed.sick || 0,
+          remaining: Math.max(0, quotas.sick - (stats.daysUsed.sick || 0))
         },
         casual: {
           total: quotas.casual,
-          used: stats.daysUsed.casual,
-          remaining: Math.max(0, quotas.casual - stats.daysUsed.casual)
+          used: stats.daysUsed.casual || 0,
+          remaining: Math.max(0, quotas.casual - (stats.daysUsed.casual || 0))
         },
-        vacation: {
-          total: quotas.vacation,
-          used: stats.daysUsed.vacation,
-          remaining: Math.max(0, quotas.vacation - stats.daysUsed.vacation)
+        emergency: {
+          total: quotas.emergency,
+          used: stats.daysUsed.emergency || 0,
+          remaining: Math.max(0, quotas.emergency - (stats.daysUsed.emergency || 0))
+        },
+        other: {
+          total: quotas.other,
+          used: stats.daysUsed.other || 0,
+          remaining: Math.max(0, quotas.other - (stats.daysUsed.other || 0))
         }
       };
 

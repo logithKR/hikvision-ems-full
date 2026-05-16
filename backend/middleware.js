@@ -27,11 +27,6 @@ function extractOrganizationId(decoded) {
 async function authenticateToken(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
-    if (authHeader) {
-      console.log('🛡️ Middleware: Auth Header Value:', authHeader.substring(0, 50) + '...');
-    } else {
-      console.log('🛡️ Middleware: Auth Header is MISSING');
-    }
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.log('❌ Middleware: No token provided or invalid format');
@@ -48,8 +43,6 @@ async function authenticateToken(req, res, next) {
 
     // Decode token to get uid
     const decoded = jwt.decode(token);
-    console.log('🛡️ Decoded token keys:', decoded ? Object.keys(decoded) : 'NULL');
-    console.log('🛡️ Decoded token:', decoded ? JSON.stringify({ uid: decoded.uid, sub: decoded.sub, user_id: decoded.user_id, role: decoded.role, organizationId: decoded.organizationId }) : 'DECODE FAILED');
 
     // Firebase ID tokens use 'sub' or 'user_id', not 'uid' for the user ID!
     const uid = decoded?.uid || decoded?.sub || decoded?.user_id;
@@ -59,9 +52,7 @@ async function authenticateToken(req, res, next) {
       return res.status(401).json({ error: 'Unauthorized: Invalid token structure' });
     }
 
-    console.log('🛡️ Using UID:', uid);
     let organizationId = extractOrganizationId(decoded);
-    console.log('🛡️ Extracted organizationId:', organizationId || 'NULL');
     let employee = null;
 
     // Try to verify as Firebase ID token first

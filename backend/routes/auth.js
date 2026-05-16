@@ -10,6 +10,7 @@ const router = express.Router();
 const container = require('../container');
 const admin = require('../firebase-admin');
 const bcrypt = require('bcryptjs');
+const { authenticateToken } = require('../middleware');
 
 // Get service instances from container
 const employeeService = container.getEmployeeService();
@@ -189,8 +190,9 @@ router.post('/google', async (req, res) => {
     const db = require('firebase-admin').firestore();
     const systemUserQuery = await db.collection('users')
       .where('email', '==', email)
+      .where('isSystemUser', '==', true)
       .limit(1)
-      .get(); // Removed isSystemUser check to allow flexible lookup first
+      .get();
 
     if (!systemUserQuery.empty) {
       const doc = systemUserQuery.docs[0];
@@ -391,17 +393,11 @@ router.post('/register/organization', async (req, res) => {
  * POST /api/auth/change-password
  * Change password for authenticated user
  */
-router.post('/change-password', async (req, res) => {
+router.post('/change-password', authenticateToken, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
-    }
+    const userId = req.user.uid;
+    const userOrgId = req.user.organizationId;
 
     // Validate passwords
     if (!oldPassword || !newPassword) {
@@ -418,38 +414,10 @@ router.post('/change-password', async (req, res) => {
       });
     }
 
-    // Decode token to get user info
-    const token = authHeader.split('Bearer ')[1];
-    const firebaseAdmin = admin();
-
-    let userId, userOrgId;
-
-    try {
-      const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-      userId = decodedToken.uid;
-      userOrgId = decodedToken.organizationId;
-      console.log('✅ Token verified via Firebase Admin');
-    } catch (error) {
-      console.log('⚠️ Token verification failed, trying decode:', error.message);
-      // Try decoding as custom token
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.decode(token);
-      if (!decoded) {
-        throw new Error('Invalid token');
-      }
-      console.log('🔍 Decoded token payload:', JSON.stringify(decoded, null, 2));
-      userId = decoded.uid || decoded.user_id || decoded.sub;
-      // Check for organizationId in different places (custom token puts claims in 'claims')
-      userOrgId = decoded.organizationId || (decoded.claims && decoded.claims.organizationId);
-    }
-
-    console.log('👤 Extracted User ID:', userId);
-    console.log('🏢 Extracted Org ID:', userOrgId);
-
-    if (!userOrgId) {
+    if (!userOrgId && req.user.role !== 'system_admin') {
       return res.status(400).json({
         error: 'Organization not found',
-        message: 'User is not associated with an organization. decoded orgId is: ' + userOrgId
+        message: 'User is not associated with an organization.'
       });
     }
 
@@ -482,41 +450,12 @@ router.post('/change-password', async (req, res) => {
  * PUT /api/auth/profile
  * Update user profile details
  */
-router.put('/profile', async (req, res) => {
+router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const { name, phone, department, position, address } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    const firebaseAdmin = admin();
-
-    let userId, userOrgId;
-
-    try {
-      const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-      userId = decodedToken.uid;
-      userOrgId = decodedToken.organizationId;
-      userRole = decodedToken.role; // Extract role
-      console.log('✅ [Profile] Token verified via Firebase Admin');
-    } catch (error) {
-      console.log('⚠️ [Profile] Verification failed, decoding:', error.message);
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.decode(token);
-      if (!decoded) {
-        throw new Error('Invalid token');
-      }
-      console.log('🔍 [Profile] Decoded:', JSON.stringify(decoded, null, 2));
-      userId = decoded.uid || decoded.user_id || decoded.sub;
-      userOrgId = decoded.organizationId || (decoded.claims && decoded.claims.organizationId);
-      userRole = decoded.role || (decoded.claims && decoded.claims.role);
-    }
+    const userId = req.user.uid;
+    const userOrgId = req.user.organizationId;
+    const userRole = req.user.role;
 
     // Allow if orgId exists OR if it's a system_admin (system user)
     if (!userOrgId && userRole !== 'system_admin') {
@@ -571,35 +510,10 @@ router.put('/profile', async (req, res) => {
  * GET /api/auth/profile
  * Get current user profile (Alias for /me)
  */
-router.get('/profile', async (req, res) => {
+router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    const firebaseAdmin = admin();
-
-    let userId, userOrgId;
-
-    try {
-      const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-      userId = decodedToken.uid;
-      userOrgId = decodedToken.organizationId;
-    } catch (error) {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.decode(token);
-      if (!decoded) {
-        throw new Error('Invalid token');
-      }
-      userId = decoded.uid || decoded.user_id || decoded.sub;
-      userOrgId = decoded.organizationId || (decoded.claims && decoded.claims.organizationId);
-    }
+    const userId = req.user.uid;
+    const userOrgId = req.user.organizationId;
 
     if (!userOrgId) {
       return res.status(400).json({

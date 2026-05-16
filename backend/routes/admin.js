@@ -240,6 +240,17 @@ router.delete('/employees/:id', authenticateToken, requireAdminOrBusinessOwner, 
     const { organizationId, uid: deletedBy } = req.user;
     const { id } = req.params;
 
+    // Privilege Protection: Prevent self-deletion
+    if (id === deletedBy) {
+      return res.status(400).json({ error: 'You cannot delete your own account' });
+    }
+
+    // Privilege Protection: Prevent deleting business owner
+    const targetUser = await userRepo.findById(organizationId, id);
+    if (targetUser && targetUser.role === 'business_owner') {
+      return res.status(403).json({ error: 'Business owner accounts cannot be deleted' });
+    }
+
     const result = await employeeService.deleteEmployee(organizationId, id, deletedBy);
 
     res.json({
@@ -731,17 +742,51 @@ router.delete('/departments/:id', authenticateToken, requireAdmin, async (req, r
     const { organizationId, uid } = req.user;
     const deptId = req.params.id;
 
-    // Get all members and delete them
+    // Get all members
     const members = await userRepo.findByDepartment(organizationId, deptId);
+    
+    // Create an atomic batch
+    const db = container.db;
+    const batch = db.batch();
+    const timestamp = new Date().toISOString();
+
+    // 1. Soft-delete all members and clear their departmentId link (Option B)
     for (const member of members) {
-      await employeeService.deleteEmployee(organizationId, member.id, uid);
+      const memberRef = db.collection('organizations').doc(organizationId).collection('users').doc(member.id);
+      batch.update(memberRef, { 
+        isActive: false, 
+        deletedAt: timestamp,
+        departmentId: null // Clear ID so it doesn't glitch if restored
+      });
     }
 
-    // Delete the department
-    await departmentRepo.delete(organizationId, deptId);
+    // 2. Delete the department itself
+    const deptRef = db.collection('organizations').doc(organizationId).collection('departments').doc(deptId);
+    batch.delete(deptRef);
 
-    res.json({ message: `Department deleted along with ${members.length} members` });
+    // Commit the batch atomically
+    await batch.commit();
+
+    // Run background cleanup tasks (quotas, audit logs) so they don't block the response
+    for (const member of members) {
+      if (employeeService.quotaService) {
+        employeeService.quotaService.recordUserDeletion(organizationId, member.role || 'employee', member.createdBy || null).catch(e => console.error(e));
+      }
+      if (employeeService.auditService) {
+        employeeService.auditService.log({
+          organizationId,
+          actor: { uid, name: 'Admin', role: 'admin' },
+          action: 'EMPLOYEE_DELETE_SOFT',
+          targetId: member.id,
+          targetType: member.role || 'employee',
+          details: { reason: 'Department Deleted' }
+        }).catch(e => console.error(e));
+      }
+    }
+
+    res.json({ message: `Department deleted along with ${members.length} members atomically` });
   } catch (error) {
+    console.error('❌ Error deleting department:', error);
     res.status(500).json({ error: error.message });
   }
 });

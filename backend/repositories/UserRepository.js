@@ -91,6 +91,62 @@ class UserRepository extends BaseRepository {
   }
 
   /**
+   * Create a new user with a specific ID within an organization
+   * @param {string} orgId - Organization ID
+   * @param {string} id - Specific user ID
+   * @param {Object} data - User data
+   * @returns {Promise<Object>} Created user
+   */
+  async createWithId(orgId, id, data) {
+    try {
+      const docRef = this.getCollection(orgId).doc(id);
+      const timestamp = new Date().toISOString();
+
+      const userData = {
+        id,
+        name: data.name,
+        email: data.email.toLowerCase(),
+        passwordHash: data.passwordHash,
+        role: data.role || 'employee',
+        department: data.department || '',
+        position: data.position || data.role || '',
+        salary: data.salary || '0',
+        workingType: data.workingType || 'full-time',
+        skills: data.skills || '',
+        address: data.address || '',
+        emergencyContact: data.emergencyContact || '',
+        phone: data.phone || '',
+        organizationId: orgId,
+        isActive: true,
+        departmentId: data.departmentId || null,
+        managerId: data.managerId || null,
+        managerName: data.managerName || null,
+        isDeptHead: data.isDeptHead || false,
+        isManager: data.isManager || false,
+        isTeamLead: data.isManager || data.isDeptHead || false,
+        directReports: [],
+        ...(data.role === 'admin' && {
+          adminSettings: {
+            employeesCreated: 0,
+            canCreateUpTo: data.canCreateUpTo || 50
+          }
+        }),
+        createdAt: timestamp,
+        createdBy: data.createdBy || null,
+        updatedAt: timestamp
+      };
+
+      await docRef.set(userData);
+
+      console.log(`✅ [UserRepository] Created ${userData.role} in org ${orgId} with ID: ${id}`);
+      return userData;
+    } catch (error) {
+      console.error(`❌ [UserRepository] CreateWithId error:`, error);
+      throw new Error(`Failed to create user with ID: ${error.message}`);
+    }
+  }
+
+  /**
    * Find user by ID within organization
    * @param {string} orgId - Organization ID
    * @param {string} userId - User ID
@@ -719,7 +775,7 @@ class UserRepository extends BaseRepository {
       return matches.length > 0 ? matches[0] : null;
     } catch (error) {
       console.error(`❌ [UserRepository] FindByHikvisionId error:`, error);
-      return null;
+      throw new Error(`Database error while checking Hikvision ID: ${error.message}`);
     }
   }
 }

@@ -186,28 +186,80 @@ router.post('/', upload.any(), async (req, res) => {
             .collection('attendance')
             .doc(attendanceDocId);
 
-        const docSnap = await attendanceRef.get();
         const timestamp = new Date().toISOString();
-
-        // 3️⃣ SMART STATE MACHINE — Hikvision device = checkIn ONLY
-        // CheckOut can ONLY happen through the app.
         let systemAction;
         let reason;
 
-        if (!docSnap.exists) {
-            systemAction = 'checkIn';
-            reason = 'First scan of the day';
-        } else {
-            const existing = docSnap.data();
-            if (existing.checkIn) {
-                systemAction = 'logged_only';
-                reason = existing.checkOut
-                    ? 'Day already complete — device scans after checkout are logged only'
-                    : 'Already checked in — use the app to check out';
-            } else {
+        // Use a transaction to prevent race conditions on double-scans
+        await db.runTransaction(async (transaction) => {
+            const docSnap = await transaction.get(attendanceRef);
+
+            // 3️⃣ SMART STATE MACHINE — Hikvision device = checkIn ONLY
+            if (!docSnap.exists) {
                 systemAction = 'checkIn';
-                reason = 'No checkIn on existing record — recording as checkIn';
+                reason = 'First scan of the day';
+            } else {
+                const existing = docSnap.data();
+                if (existing.checkIn) {
+                    systemAction = 'logged_only';
+                    reason = existing.checkOut
+                        ? 'Day already complete — device scans after checkout are logged only'
+                        : 'Already checked in — use the app to check out';
+                } else {
+                    systemAction = 'checkIn';
+                    reason = 'No checkIn on existing record — recording as checkIn';
+                }
             }
+
+            // 5️⃣ APPLY THE DECISION INSIDE TRANSACTION
+            if (systemAction === 'logged_only') {
+                return; // Do not modify attendance doc
+            }
+
+            if (!docSnap.exists) {
+                // Create brand-new attendance record (checkIn)
+                const HIKVISION_LOCATION = 'In Office (Hikvision Device)';
+                transaction.set(attendanceRef, {
+                    id: attendanceDocId,
+                    userId,
+                    userName,
+                    date: isoDateString,
+                    organizationId,
+                    checkIn: timeString,
+                    checkOut: null,
+                    breakIn: null,
+                    breakOut: null,
+                    checkInLocation: HIKVISION_LOCATION,
+                    verifyMode,
+                    verifyMethod: verifyMode,
+                    source: 'hikvision',
+                    events: [{ type: systemAction, time: timestamp, method: verifyMode, location: HIKVISION_LOCATION }],
+                    createdAt: timestamp,
+                    updatedAt: timestamp,
+                });
+            } else {
+                // Update existing record
+                const existingData = docSnap.data();
+                const events = existingData.events || [];
+                events.push({ type: systemAction, time: timestamp, method: verifyMode });
+                transaction.update(attendanceRef, {
+                    checkOut: timeString,
+                    updatedAt: timestamp,
+                    verifyMode,
+                    verifyMethod: verifyMode,
+                    source: 'hikvision',
+                    events,
+                });
+            }
+        });
+
+        // Logging outside the transaction (so it only fires once)
+        if (systemAction === 'logged_only') {
+            console.log(`📝 [Hikvision] ${userName} — ${reason}`);
+        } else if (systemAction === 'checkIn') {
+            console.log(`✅ [Hikvision] checkIn — ${userName} at ${timeString} on ${dateString}`);
+        } else {
+            console.log(`✅ [Hikvision] checkOut — ${userName} at ${timeString} on ${dateString}`);
         }
 
         // 4️⃣ SAVE RAW SCAN TO AUDIT LOG (always)
@@ -226,51 +278,6 @@ router.post('/', upload.any(), async (req, res) => {
             });
         } catch (saveErr) {
             console.error("❌ Hikvision: Failed to write audit log:", saveErr.message);
-        }
-
-        // 5️⃣ APPLY THE DECISION
-        if (systemAction === 'logged_only') {
-            console.log(`📝 [Hikvision] ${userName} — ${reason}`);
-            return res.status(200).json(HIKVISION_SUCCESS);
-        }
-
-        if (!docSnap.exists) {
-            // Create brand-new attendance record (checkIn)
-            const HIKVISION_LOCATION = 'In Office (Hikvision Device)';
-            await attendanceRef.set({
-                id: attendanceDocId,
-                userId,
-                userName,
-                date: isoDateString,
-                organizationId,
-                checkIn: timeString,
-                checkOut: null,
-                breakIn: null,
-                breakOut: null,
-                checkInLocation: HIKVISION_LOCATION,
-                verifyMode,
-                verifyMethod: verifyMode,
-                source: 'hikvision',
-                events: [{ type: systemAction, time: timestamp, method: verifyMode, location: HIKVISION_LOCATION }],
-                createdAt: timestamp,
-                updatedAt: timestamp,
-            });
-            console.log(`✅ [Hikvision] checkIn — ${userName} at ${timeString} on ${dateString}`);
-
-        } else {
-            // Update existing record (edge case — currently device can't write checkOut)
-            const existingData = docSnap.data();
-            const events = existingData.events || [];
-            events.push({ type: systemAction, time: timestamp, method: verifyMode });
-            await attendanceRef.update({
-                checkOut: timeString,
-                updatedAt: timestamp,
-                verifyMode,
-                verifyMethod: verifyMode,
-                source: 'hikvision',
-                events,
-            });
-            console.log(`✅ [Hikvision] checkOut — ${userName} at ${timeString} on ${dateString}`);
         }
 
         return res.status(200).json(HIKVISION_SUCCESS);

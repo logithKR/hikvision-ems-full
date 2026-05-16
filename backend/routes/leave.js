@@ -377,6 +377,41 @@ router.get('/stats/my-stats', authenticateToken, requireEmployee, async (req, re
 });
 
 /**
+ * GET /api/leave/check/:date
+ * Check if I'm on leave on a specific date
+ * Employee only
+ */
+router.get('/check/:date', authenticateToken, requireEmployee, async (req, res) => {
+  try {
+    const { date } = req.params;
+    const orgId = req.user.organizationId;
+    const userId = req.user.uid;
+
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({
+        error: 'Invalid date format',
+        message: 'Date must be in YYYY-MM-DD format'
+      });
+    }
+
+    const leave = await leaveService.isUserOnLeave(orgId, userId, date);
+
+    res.json({
+      success: true,
+      onLeave: leave !== null,
+      leave: leave
+    });
+  } catch (error) {
+    console.error('Error checking leave:', error);
+    res.status(500).json({
+      error: 'Failed to check leave status',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/leave/:leaveId
  * Get specific leave request
  * Employee (own), Admin, or Business Owner
@@ -545,40 +580,7 @@ router.delete('/:leaveId', authenticateToken, requireEmployee, async (req, res) 
 // NOTE: /stats/my-stats has been moved before /:leaveId route to fix route ordering
 // NOTE: Duplicate /balance route removed - the one at line ~194 is used
 
-/**
- * GET /api/leave/check/:date
- * Check if I'm on leave on a specific date
- * Employee only
- */
-router.get('/check/:date', authenticateToken, requireEmployee, async (req, res) => {
-  try {
-    const { date } = req.params;
-    const orgId = req.user.organizationId;
-    const userId = req.user.uid;
-
-    // Validate date format
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({
-        error: 'Invalid date format',
-        message: 'Date must be in YYYY-MM-DD format'
-      });
-    }
-
-    const leave = await leaveService.isUserOnLeave(orgId, userId, date);
-
-    res.json({
-      success: true,
-      onLeave: leave !== null,
-      leave: leave
-    });
-  } catch (error) {
-    console.error('Error checking leave:', error);
-    res.status(500).json({
-      error: 'Failed to check leave status',
-      message: error.message
-    });
-  }
-});
+// Route moved above /:leaveId
 
 // NOTE: Duplicate /upcoming route removed - the one at line ~247 is used
 

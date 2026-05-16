@@ -54,7 +54,7 @@ class BaseRepository {
 
       await docRef.set(documentData);
       
-      console.log(`✅ [${this.collectionName}] Created document: ${docRef.id}`);
+      // console.log(`✅ [${this.collectionName}] Created document: ${docRef.id}`);
       return documentData;
     } catch (error) {
       console.error(`❌ [${this.collectionName}] Create error:`, error);
@@ -82,7 +82,7 @@ class BaseRepository {
 
       await docRef.set(documentData);
       
-      console.log(`✅ [${this.collectionName}] Created document with ID: ${id}`);
+      // console.log(`✅ [${this.collectionName}] Created document with ID: ${id}`);
       return documentData;
     } catch (error) {
       console.error(`❌ [${this.collectionName}] Create with ID error:`, error);
@@ -100,12 +100,12 @@ class BaseRepository {
       const doc = await this.getCollection().doc(id).get();
       
       if (!doc.exists) {
-        console.log(`⚠️ [${this.collectionName}] Document not found: ${id}`);
+        // console.log(`⚠️ [${this.collectionName}] Document not found: ${id}`);
         return null;
       }
 
       const data = { id: doc.id, ...doc.data() };
-      console.log(`✅ [${this.collectionName}] Found document: ${id}`);
+      // console.log(`✅ [${this.collectionName}] Found document: ${id}`);
       return data;
     } catch (error) {
       console.error(`❌ [${this.collectionName}] FindById error:`, error);
@@ -142,7 +142,7 @@ class BaseRepository {
         ...doc.data()
       }));
 
-      console.log(`✅ [${this.collectionName}] Found ${documents.length} documents where ${field} = ${value}`);
+      // console.log(`✅ [${this.collectionName}] Found ${documents.length} documents where ${field} = ${value}`);
       return documents;
     } catch (error) {
       console.error(`❌ [${this.collectionName}] FindBy error:`, error);
@@ -177,7 +177,7 @@ class BaseRepository {
         ...doc.data()
       }));
 
-      console.log(`✅ [${this.collectionName}] Found ${documents.length} documents`);
+      // console.log(`✅ [${this.collectionName}] Found ${documents.length} documents`);
       return documents;
     } catch (error) {
       console.error(`❌ [${this.collectionName}] FindAll error:`, error);

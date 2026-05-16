@@ -90,6 +90,7 @@ class NotificationService {
      * @param {Object} data
      */
     sendToOrgAdmins(orgId, event, data) {
+        if (!this.io) return;
         // In a real app, you might have a separate room for admins
         // For now, we can rely on client-side filtering or just send to org room with a 'role' filter in data
         // Better: Join admins to `org:${orgId}:admins` room upon auth
