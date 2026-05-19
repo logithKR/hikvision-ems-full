@@ -25,6 +25,7 @@ import {
 } from "lucide-react"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
+import { toast } from "sonner"
 
 const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
@@ -155,8 +156,8 @@ export default function AdminEmployeesPage() {
       setEditDialogOpen(false)
       setEditingEmployee(null)
     },
-    onError: () => {
-      // Error is displayed inline in the dialog via updateMutation.error
+    onError: (err) => {
+      toast.error(err.message)
     },
   })
 
@@ -186,6 +187,7 @@ export default function AdminEmployeesPage() {
     },
     onError: (err, id, context) => {
       queryClient.setQueryData(['admin-employees'], context.previousEmployees)
+      toast.error(err.message)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
@@ -217,6 +219,9 @@ export default function AdminEmployeesPage() {
       setManagerDialogOpen(false)
       setAssigningEmployee(null)
     },
+    onError: (err) => {
+      toast.error(err.message)
+    }
   })
 
   // ── Create Employee Mutation ────────────────────
@@ -244,6 +249,9 @@ export default function AdminEmployeesPage() {
       setCreateDialogOpen(false)
       setCreateForm({ name: "", email: "", password: "", department: "", departmentId: "", phone: "", position: "", role: "employee", hikvisionEmployeeId: "" })
     },
+    onError: (err) => {
+      toast.error(err.message)
+    }
   })
 
   const handleCreateEmployee = () => {
@@ -275,6 +283,9 @@ export default function AdminEmployeesPage() {
       setDeptDialogOpen(false)
       setDeptForm({ name: "", description: "", maxEmployees: 50 })
     },
+    onError: (err) => {
+      toast.error(err.message)
+    }
   })
 
   // ── Delete Department Mutation ──────────────────
@@ -297,6 +308,9 @@ export default function AdminEmployeesPage() {
       setDeleteDeptConfirmOpen(false)
       setDeptToDelete(null)
     },
+    onError: (err) => {
+      toast.error(err.message)
+    }
   })
 
   // ── Create Dept Member (HOD/Manager/Employee) Mutation ──
@@ -325,6 +339,9 @@ export default function AdminEmployeesPage() {
       setDeptMemberDialogOpen(false)
       setDeptMemberForm({ name: "", email: "", password: "", phone: "", position: "", managerId: "", hikvisionEmployeeId: "" })
     },
+    onError: (err) => {
+      toast.error(err.message)
+    }
   })
 
   // ── Dept member creation handler ───────────────

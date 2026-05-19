@@ -58,6 +58,9 @@ class UserRepository extends BaseRepository {
 
         // 🏢 Department mapping
         departmentId: data.departmentId || null,
+        
+        // 🆔 Integrations
+        hikvisionEmployeeId: data.hikvisionEmployeeId || '',
 
         // 👥 Team/Manager mapping
         managerId: data.managerId || null,
@@ -119,6 +122,7 @@ class UserRepository extends BaseRepository {
         organizationId: orgId,
         isActive: true,
         departmentId: data.departmentId || null,
+        hikvisionEmployeeId: data.hikvisionEmployeeId || '',
         managerId: data.managerId || null,
         managerName: data.managerName || null,
         isDeptHead: data.isDeptHead || false,
