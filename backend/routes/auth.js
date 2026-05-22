@@ -368,6 +368,15 @@ router.post('/register/organization', async (req, res) => {
       });
     }
 
+    // Check if organization name already exists
+    const existingOrgName = await orgRepo.findByName(organizationName);
+    if (existingOrgName) {
+      return res.status(409).json({
+        error: 'Organization name taken',
+        message: 'An organization with this name already exists. Please choose a different name.'
+      });
+    }
+
     // Create organization (active by default)
     const organization = await orgRepo.create({
       name: organizationName,

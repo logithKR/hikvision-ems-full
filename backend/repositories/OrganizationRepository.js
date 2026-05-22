@@ -74,6 +74,24 @@ class OrganizationRepository extends BaseRepository {
   }
 
   /**
+   * Find organization by name
+   */
+  async findByName(name) {
+    try {
+      const snapshot = await this.db.collection('organizations')
+        .where('name', '==', name)
+        .limit(1)
+        .get();
+        
+      if (snapshot.empty) return null;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    } catch (error) {
+      console.error('❌ [OrganizationRepository] FindByName error:', error);
+      throw new Error(`Failed to find organization by name: ${error.message}`);
+    }
+  }
+
+  /**
    * Get all active organizations (No Index Required Version)
    */
   async findAllActive() {
