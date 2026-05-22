@@ -9,10 +9,9 @@ import SystemAdminLayout from '@/app/system-admin/layout'
 
 // Root Pages
 import LandingPage from '@/app/page'
-import RoleSelectionPage from '@/app/role-selection/page'
+import UnifiedLoginPage from '@/app/login/page'
 
 // Admin Pages
-import AdminLoginPage from '@/app/admin/login/page'
 import AdminDashboardPage from '@/app/admin/dashboard/page'
 import AdminEmployeesPage from '@/app/admin/employees/page'
 import AdminAttendancePage from '@/app/admin/attendance/page'
@@ -21,7 +20,6 @@ import AdminProfilePage from '@/app/admin/profile/page'
 import AdminOrgChartPage from '@/app/admin/org-chart/page'
 
 // Employee Pages
-import EmployeeLoginPage from '@/app/employee/login/page'
 import EmployeeDashboardPage from '@/app/employee/dashboard/page'
 import EmployeeAttendancePage from '@/app/employee/attendance/page'
 import EmployeeLeaveRequestsPage from '@/app/employee/leave-requests/page'
@@ -32,7 +30,6 @@ import EmployeeTeamAttendancePage from '@/app/employee/team/attendance/page'
 import EmployeeTeamLeavesPage from '@/app/employee/team/leaves/page'
 
 // Business Owner Pages
-import BOLoginPage from '@/app/business-owner/login/page'
 import BORegisterPage from '@/app/business-owner/register/page'
 import BODashboardPage from '@/app/business-owner/dashboard/page'
 import BOEmployeesPage from '@/app/business-owner/employees/page'
@@ -41,7 +38,6 @@ import BOLeaveRequestsPage from '@/app/business-owner/leave-requests/page'
 import BOProfilePage from '@/app/business-owner/profile/page'
 
 // System Admin Pages
-import SALoginPage from '@/app/system-admin/login/page'
 import SADashboardPage from '@/app/system-admin/dashboard/page'
 import SAOrganizationsPage from '@/app/system-admin/organizations/page'
 import SAProfilePage from '@/app/system-admin/profile/page'
@@ -52,10 +48,9 @@ export default function App() {
             <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/role-selection" element={<RoleSelectionPage />} />
+                <Route path="/login" element={<UnifiedLoginPage />} />
 
                 {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLayout><AdminLoginPage /></AdminLayout>} />
                 <Route path="/admin" element={<AdminLayout />}>
                     <Route path="dashboard" element={<AdminDashboardPage />} />
                     <Route path="org-chart" element={<AdminOrgChartPage />} />
@@ -67,7 +62,6 @@ export default function App() {
                 </Route>
 
                 {/* Employee Routes */}
-                <Route path="/employee/login" element={<EmployeeLayout><EmployeeLoginPage /></EmployeeLayout>} />
                 <Route path="/employee" element={<EmployeeLayout />}>
                     <Route path="dashboard" element={<EmployeeDashboardPage />} />
                     <Route path="attendance" element={<EmployeeAttendancePage />} />
@@ -81,7 +75,6 @@ export default function App() {
                 </Route>
 
                 {/* Business Owner Routes */}
-                <Route path="/business-owner/login" element={<BusinessOwnerLayout><BOLoginPage /></BusinessOwnerLayout>} />
                 <Route path="/business-owner/register" element={<BORegisterPage />} />
                 <Route path="/business-owner" element={<BusinessOwnerLayout />}>
                     <Route path="dashboard" element={<BODashboardPage />} />
@@ -93,7 +86,6 @@ export default function App() {
                 </Route>
 
                 {/* System Admin Routes */}
-                <Route path="/system-admin/login" element={<SystemAdminLayout><SALoginPage /></SystemAdminLayout>} />
                 <Route path="/system-admin" element={<SystemAdminLayout />}>
                     <Route path="dashboard" element={<SADashboardPage />} />
                     <Route path="organizations" element={<SAOrganizationsPage />} />

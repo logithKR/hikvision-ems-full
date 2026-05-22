@@ -18,6 +18,79 @@ const orgRepo = container.getOrganizationRepo();
 const userRepo = container.getUserRepo();
 
 /**
+ * GET /api/auth/workspaces
+ * Fetches all organizations a user belongs to by their email address.
+ * Uses a Collection Group query for performance.
+ */
+router.get('/workspaces', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: 'Missing email', message: 'Email query parameter is required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const db = require('firebase-admin').firestore();
+    
+    console.log(`🔍 Searching for workspaces for email: ${normalizedEmail}`);
+    
+    // Use collectionGroup to query both root 'users' and 'organizations/{orgId}/users'
+    const snapshot = await db.collectionGroup('users')
+      .where('email', '==', normalizedEmail)
+      .where('isActive', '==', true)
+      .get();
+      
+    if (snapshot.empty) {
+      return res.json({ workspaces: [] });
+    }
+
+    const workspaces = [];
+    const orgIdsToFetch = new Set();
+    const userRoleMap = new Map();
+
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.isSystemUser) {
+        workspaces.push({
+          id: 'system',
+          name: 'System Administration',
+          role: 'system_admin'
+        });
+      } else if (data.organizationId) {
+        orgIdsToFetch.add(data.organizationId);
+        userRoleMap.set(data.organizationId, data.role || 'employee');
+      }
+    });
+
+    // Fetch the actual organization names
+    if (orgIdsToFetch.size > 0) {
+      const orgRefs = Array.from(orgIdsToFetch).map(orgId => db.collection('organizations').doc(orgId));
+      if (orgRefs.length > 0) {
+        // Chunk requests if there are more than 100, but getAll supports up to 100.
+        // For standard users, they rarely belong to >100 orgs.
+        const orgDocs = await db.getAll(...orgRefs);
+        orgDocs.forEach(doc => {
+          if (doc.exists && doc.data().isActive) {
+            workspaces.push({
+              id: doc.id,
+              name: doc.data().name || 'Unknown Workspace',
+              role: userRoleMap.get(doc.id)
+            });
+          }
+        });
+      }
+    }
+
+    console.log(`✅ Found ${workspaces.length} workspaces for ${normalizedEmail}`);
+    res.json({ workspaces });
+
+  } catch (error) {
+    console.error('❌ Error fetching workspaces:', error);
+    res.status(500).json({ error: 'Server error', message: 'Failed to fetch workspaces' });
+  }
+});
+
+/**
  * POST /api/auth/login
  * Universal login endpoint for all roles
  */
@@ -41,23 +114,23 @@ router.post('/login', async (req, res) => {
     let user = null;
     let userOrgId = null;
 
-    // First, check root users collection for system users (system_admin)
-    console.log('🔍 Checking for system user...');
     const db = require('firebase-admin').firestore();
 
-    // MODIFICATION: If organizationId is provided, check for organization user first (for dual-role users)
+    // 1. If organizationId is explicitly provided, look for them in that organization
     if (organizationId) {
-      console.log('🏢 Organization ID provided. Checking organization user first...');
+      console.log('🏢 Organization ID provided. Checking organization user...');
       const orgUser = await userRepo.findByEmail(organizationId, normalizedEmail);
       if (orgUser) {
         user = orgUser;
         userOrgId = organizationId;
         console.log('✅ Found user in target organization:', user.name, '(', user.role, ')');
+      } else {
+        return res.status(401).json({ error: 'Invalid credentials', message: 'Email or password is incorrect' });
       }
-    }
-
-    // If no org user found (or no orgId provided), check system users
-    if (!user) {
+    } 
+    // 2. If NO organizationId is provided, they MUST be a System Admin
+    else {
+      console.log('🔍 No Organization ID provided. Checking for system user...');
       const systemUserQuery = await db.collection('users')
         .where('email', '==', normalizedEmail)
         .where('isSystemUser', '==', true)
@@ -67,34 +140,10 @@ router.post('/login', async (req, res) => {
       if (!systemUserQuery.empty) {
         const doc = systemUserQuery.docs[0];
         user = { id: doc.id, ...doc.data() };
-        userOrgId = null; // System users don't belong to an org
+        userOrgId = null;
         console.log('✅ Found system user:', user.name, '(', user.role, ')');
-      }
-    }
-
-    // If not a system user, search in organizations
-    if (!user) {
-      // If organizationId provided, search in that org
-      if (organizationId) {
-        console.log('🏢 Searching in organization:', organizationId);
-        user = await userRepo.findByEmail(organizationId, normalizedEmail);
-        if (user) {
-          userOrgId = organizationId;
-        }
       } else {
-        // Search across all active organizations
-        console.log('🔍 Searching across all organizations...');
-        const allOrgs = await orgRepo.findAllActive();
-
-        for (const org of allOrgs) {
-          const foundUser = await userRepo.findByEmail(org.id, normalizedEmail);
-          if (foundUser) {
-            user = foundUser;
-            userOrgId = org.id;
-            console.log('✅ User found in organization:', org.name);
-            break;
-          }
-        }
+        return res.status(400).json({ error: 'Organization Required', message: 'Please select a workspace to log into.' });
       }
     }
 
