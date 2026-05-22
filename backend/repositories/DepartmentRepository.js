@@ -179,6 +179,13 @@ class DepartmentRepository extends BaseRepository {
     async setHead(orgId, deptId, headId, headName) {
         return this.update(orgId, deptId, { headId, headName });
     }
+
+    /**
+     * Clear department head
+     */
+    async clearHead(orgId, deptId) {
+        return this.update(orgId, deptId, { headId: null, headName: null });
+    }
 }
 
 module.exports = DepartmentRepository;

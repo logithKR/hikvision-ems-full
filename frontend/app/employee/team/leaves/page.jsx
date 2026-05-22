@@ -267,6 +267,7 @@ export default function TeamLeavesPage() {
                                             <TableHead>Period</TableHead>
                                             <TableHead>Days</TableHead>
                                             <TableHead>Status</TableHead>
+                                            <TableHead>Reviewed By</TableHead>
                                             <TableHead>Action Date</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -289,6 +290,10 @@ export default function TeamLeavesPage() {
                                                             <Badge className="bg-emerald-100 text-emerald-700 border-0">Approved</Badge> :
                                                             <Badge className="bg-red-100 text-red-700 border-0">Rejected</Badge>
                                                         }
+                                                    </TableCell>
+                                                    <TableCell className="text-xs">
+                                                        {leave.reviewedByName || '—'}
+                                                        {leave.reviewComments && <p className="text-muted-foreground italic">"{leave.reviewComments}"</p>}
                                                     </TableCell>
                                                     <TableCell className="text-xs text-muted-foreground">{formatDate(leave.updatedAt || leave.createdAt)}</TableCell>
                                                 </TableRow>

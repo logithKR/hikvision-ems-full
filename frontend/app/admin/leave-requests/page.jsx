@@ -134,6 +134,7 @@ export default function AdminLeaveRequestsPage() {
                   <TableHead>Dates</TableHead>
                   <TableHead>Days</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Reviewed By</TableHead>
                   <TableHead>Requested On</TableHead>
                 </TableRow>
               </TableHeader>
@@ -160,6 +161,10 @@ export default function AdminLeaveRequestsPage() {
                       </TableCell>
                       <TableCell>{leave.days}</TableCell>
                       <TableCell>{getStatusBadge(leave.status)}</TableCell>
+                      <TableCell className="text-xs">
+                        {leave.reviewedByName || '—'}
+                        {leave.reviewComments && <p className="text-muted-foreground italic">"{leave.reviewComments}"</p>}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{formatDate(leave.createdAt)}</TableCell>
                     </TableRow>
                   ))

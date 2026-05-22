@@ -21,13 +21,15 @@ class EmployeeService {
  * @param {OrganizationRepository} organizationRepository (optional)
  * @param {AuditLogService} auditLogService
  * @param {DepartmentRepository} departmentRepository (optional)
+ * @param {LeaveRepository} leaveRepository (optional)
  */
-  constructor(userRepository, quotaService, organizationRepository = null, auditLogService = null, departmentRepository = null) {
+  constructor(userRepository, quotaService, organizationRepository = null, auditLogService = null, departmentRepository = null, leaveRepository = null) {
     this.userRepo = userRepository;
     this.quotaService = quotaService;
     this.orgRepo = organizationRepository;
     this.auditService = auditLogService;
     this.deptRepo = departmentRepository;
+    this.leaveRepo = leaveRepository;
   }
 
   /**
@@ -369,6 +371,39 @@ class EmployeeService {
 
       // Safe role access
       const userRole = employee.role || 'employee';
+
+      // NEW: Cascade cleanup before deletion
+      // 1. Unassign all direct reports from this manager
+      const directReports = employee.directReports || [];
+      if (directReports.length > 0) {
+        for (const reportId of directReports) {
+          await this.userRepo.update(orgId, reportId, {
+            managerId: null,
+            managerName: null
+          });
+        }
+        // Clear the manager's own directReports array
+        await this.userRepo.update(orgId, employeeId, { directReports: [] });
+        console.log(`🔄 Unassigned ${directReports.length} direct reports from ${employee.name}`);
+      }
+
+      // 2. If this employee is a Dept Head, clear the department's headId
+      if (employee.isDeptHead && employee.departmentId && this.deptRepo) {
+        await this.deptRepo.clearHead(orgId, employee.departmentId);
+        console.log(`🔄 Cleared HOD from department ${employee.departmentId}`);
+      }
+
+      // 3. Reassign any pending leave requests that were routed to this person
+      if (this.leaveRepo) {
+        const pendingLeaves = await this.leaveRepo.findByApprover(orgId, employeeId, { status: 'pending' });
+        if (pendingLeaves && pendingLeaves.length > 0) {
+          for (const leave of pendingLeaves) {
+            // Set approverId to null so admins/BO can pick them up
+            await this.leaveRepo.updateApprover(orgId, leave.id, null, null);
+          }
+          console.log(`🔄 Reassigned ${pendingLeaves.length} pending leaves from deleted approver`);
+        }
+      }
 
       // Soft delete (mark as inactive)
       const deleted = await this.userRepo.softDelete(orgId, employeeId);

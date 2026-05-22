@@ -296,6 +296,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
                       <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort("startDate")}><div className="flex items-center gap-1">Dates <ArrowUpDown className="h-3 w-3 text-slate-400" /></div></TableHead>
                       <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort("days")}><div className="flex items-center gap-1">Days <ArrowUpDown className="h-3 w-3 text-slate-400" /></div></TableHead>
                       <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort("status")}><div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3 text-slate-400" /></div></TableHead>
+                      <TableHead>Reviewed By</TableHead>
                       <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort("createdAt")}><div className="flex items-center gap-1">Applied On <ArrowUpDown className="h-3 w-3 text-slate-400" /></div></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -325,6 +326,10 @@ export default function BusinessOwnerLeaveRequestsPage() {
                           </TableCell>
                           <TableCell>{leave.days}</TableCell>
                           <TableCell>{getStatusBadge(leave.status)}</TableCell>
+                          <TableCell className="text-xs">
+                            {leave.reviewedByName || '—'}
+                            {leave.reviewComments && <p className="text-muted-foreground italic">"{leave.reviewComments}"</p>}
+                          </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{formatDate(leave.createdAt)}</TableCell>
                         </TableRow>
                       ))
@@ -350,9 +355,9 @@ export default function BusinessOwnerLeaveRequestsPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Comments ({actionDialog.type === 'reject' ? 'Required' : 'Optional'})</Label>
+              <Label>Comments (Optional)</Label>
               <Textarea
-                placeholder={actionDialog.type === 'reject' ? "Please provide a reason for rejection..." : "Add a note (optional)..."}
+                placeholder={actionDialog.type === 'reject' ? "Please provide a reason for rejection (optional)..." : "Add a note (optional)..."}
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
               />
@@ -362,7 +367,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
             <Button variant="outline" onClick={() => setActionDialog({ open: false, type: null, leave: null })}>Cancel</Button>
             <Button
               className={actionDialog.type === 'approve' ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}
-              disabled={processLeave.isPending || (actionDialog.type === 'reject' && !comments.trim())}
+              disabled={processLeave.isPending}
               onClick={() => processLeave.mutate({
                 leaveId: actionDialog.leave.id,
                 type: actionDialog.type,

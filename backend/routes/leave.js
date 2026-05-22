@@ -160,7 +160,6 @@ router.post('/bo/:leaveId/reject', authenticateToken, requireBusinessOwner, asyn
     const orgId = req.user.organizationId;
     const { leaveId } = req.params;
     const { comments } = req.body;
-    if (!comments) return res.status(400).json({ error: 'Rejection reason is required' });
 
     const leave = await leaveService.getLeaveById(orgId, leaveId);
     if (!leave) return res.status(404).json({ error: 'Leave not found' });

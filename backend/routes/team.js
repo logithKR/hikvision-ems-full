@@ -209,8 +209,6 @@ router.post('/leaves/:id/reject', async (req, res) => {
         const { id } = req.params;
         const { comments } = req.body;
 
-        if (!comments) return res.status(400).json({ error: 'Rejection reason is required' });
-
         const leave = await leaveService.getLeaveById(organizationId, id);
         if (!leave) return res.status(404).json({ error: 'Leave request not found' });
         if (leave.approverId !== uid) {

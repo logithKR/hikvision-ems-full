@@ -333,7 +333,7 @@ class LeaveService {
         leaveId,
         reviewerId,
         reviewer.name,
-        comments || 'No reason provided'
+        comments || null
       );
 
       console.log(`❌ Leave rejected: ${leaveId} by ${reviewer.name}`);
@@ -752,17 +752,7 @@ class LeaveService {
    * @returns {Promise<Array>} Leave history
    */
   async getTeamLeaveHistory(orgId, leaderId) {
-    const [approved, rejected] = await Promise.all([
-      this.leaveRepo.findByApprover(orgId, leaderId, { status: 'approved' }),
-      this.leaveRepo.findByApprover(orgId, leaderId, { status: 'rejected' })
-    ]);
-
-    const leaves = [...approved, ...rejected];
-
-    // Sort by updated at (most recent action first)
-    leaves.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
-
-    return await this.attachUserDetails(orgId, leaves);
+    return await this.getDeptLeaveHistory(orgId, leaderId);
   }
 
   /**
@@ -810,13 +800,32 @@ class LeaveService {
    * @returns {Promise<Array>} Approved/rejected leaves
    */
   async getDeptLeaveHistory(orgId, hodId) {
-    const [approved, rejected] = await Promise.all([
-      this.leaveRepo.findByApprover(orgId, hodId, { status: 'approved' }),
-      this.leaveRepo.findByApprover(orgId, hodId, { status: 'rejected' })
-    ]);
-    const leaves = [...approved, ...rejected];
-    leaves.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
-    return await this.attachUserDetails(orgId, leaves);
+    const user = await this.userRepo.findById(orgId, hodId);
+    if (!user) return [];
+
+    let memberIds = [];
+
+    if (user.isDeptHead && user.departmentId) {
+      // HOD: get all department members
+      const members = await this.userRepo.findByDepartment(orgId, user.departmentId);
+      memberIds = members.map(m => m.id).filter(id => id !== hodId);
+    } else {
+      // Manager: get direct reports
+      memberIds = user.directReports || [];
+    }
+
+    if (memberIds.length === 0) return [];
+
+    // Get all leaves for these members
+    const allLeaves = await this.leaveRepo.findAll(orgId, {});
+    
+    // Filter for approved and rejected leaves
+    const teamHistory = allLeaves.filter(
+      l => memberIds.includes(l.userId) && (l.status === 'approved' || l.status === 'rejected')
+    );
+
+    teamHistory.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+    return await this.attachUserDetails(orgId, teamHistory);
   }
 }
 

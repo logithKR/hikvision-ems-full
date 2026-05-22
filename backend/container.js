@@ -89,7 +89,8 @@ class Container {
       this.quotaService,
       this.organizationRepo,
       this.auditLogService,
-      this.departmentRepo
+      this.departmentRepo,
+      this.leaveRepo
     );
     console.log('✅ EmployeeService initialized');
 

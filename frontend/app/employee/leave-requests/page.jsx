@@ -225,7 +225,27 @@ export default function EmployeeLeavePage() {
                                                         "{req.reason}"
                                                     </p>
                                                 )}
-                                                {req.rejectionReason && (
+                                                {(req.status === 'approved' || req.status === 'Approved') && req.reviewedByName && (
+                                                    <div className="mt-2 text-sm text-emerald-600 bg-emerald-50 p-2 rounded flex items-start gap-2">
+                                                        <CheckCircle className="w-4 h-4 mt-0.5" />
+                                                        <div>
+                                                            <span className="font-semibold">Approved by {req.reviewedByName}</span>
+                                                            {req.reviewedAt && <span className="text-xs ml-1 opacity-80">on {format(new Date(req.reviewedAt), "MMM d, yyyy")}</span>}
+                                                            {req.reviewComments && <p className="italic mt-1 text-slate-600">"{req.reviewComments}"</p>}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {(req.status === 'rejected' || req.status === 'Rejected') && req.reviewedByName && (
+                                                    <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded flex items-start gap-2">
+                                                        <XCircle className="w-4 h-4 mt-0.5" />
+                                                        <div>
+                                                            <span className="font-semibold">Rejected by {req.reviewedByName}</span>
+                                                            {req.reviewedAt && <span className="text-xs ml-1 opacity-80">on {format(new Date(req.reviewedAt), "MMM d, yyyy")}</span>}
+                                                            {req.reviewComments && <p className="italic mt-1 text-slate-600">"{req.reviewComments}"</p>}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {req.rejectionReason && !req.reviewedByName && (
                                                     <p className="text-sm text-red-600 bg-red-50 p-2 rounded mt-1 flex items-start gap-2">
                                                         <AlertCircle className="w-4 h-4 mt-0.5" />
                                                         Note: {req.rejectionReason}

@@ -563,6 +563,29 @@ class LeaveRepository extends BaseRepository {
       throw new Error(`Failed to find leaves by approver: ${error.message}`);
     }
   }
+
+  /**
+   * Update the approver of a leave request
+   * @param {string} orgId - Organization ID
+   * @param {string} leaveId - Leave ID
+   * @param {string|null} newApproverId - New approver user ID
+   * @param {string|null} newApproverName - New approver name
+   * @returns {Promise<void>}
+   */
+  async updateApprover(orgId, leaveId, newApproverId, newApproverName) {
+    try {
+      const docRef = this.getCollection(orgId).doc(leaveId);
+      await docRef.update({
+        approverId: newApproverId,
+        approverName: newApproverName,
+        updatedAt: new Date().toISOString()
+      });
+      console.log(`✅ [LeaveRepository] Updated approver for leave ${leaveId} to ${newApproverName || 'null'}`);
+    } catch (error) {
+      console.error(`❌ [LeaveRepository] UpdateApprover error:`, error);
+      throw new Error(`Failed to update leave approver: ${error.message}`);
+    }
+  }
 }
 
 module.exports = LeaveRepository;
