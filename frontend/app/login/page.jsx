@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { loginUser } from '@/lib/auth';
 
 export default function UnifiedLoginPage() {
+  const getApiBase = () => import.meta.env.VITE_API_URL || "http://localhost:5000";
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [workspaces, setWorkspaces] = useState([]);
@@ -17,7 +19,7 @@ export default function UnifiedLoginPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/workspaces?email=${encodeURIComponent(email)}`);
+      const response = await fetch(`${getApiBase()}/api/auth/workspaces?email=${encodeURIComponent(email)}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -57,30 +59,17 @@ export default function UnifiedLoginPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          organizationId: selectedOrgId === 'system' ? null : selectedOrgId
-        }),
-      });
+      const orgIdToPass = selectedOrgId === 'system' ? null : selectedOrgId;
+      const result = await loginUser(email, password, orgIdToPass);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Invalid credentials');
+      if (!result.success) {
+        throw new Error(result.error || 'Invalid credentials');
       }
 
-      // Store token and redirect
-      localStorage.setItem('token', data.token);
       toast.success('Login successful!');
 
       // Route based on role
-      const userRole = data.user.role;
+      const userRole = result.user.role;
       if (userRole === 'system_admin') {
         navigate('/system-admin/dashboard');
       } else if (userRole === 'business_owner') {

@@ -34,49 +34,37 @@ router.get('/workspaces', async (req, res) => {
     
     console.log(`🔍 Searching for workspaces for email: ${normalizedEmail}`);
     
-    // Use collectionGroup to query both root 'users' and 'organizations/{orgId}/users'
-    const snapshot = await db.collectionGroup('users')
+    const workspaces = [];
+
+    // 1. Check Root Users (System Administration)
+    const systemUserQuery = await db.collection('users')
       .where('email', '==', normalizedEmail)
-      .where('isActive', '==', true)
+      .where('isSystemUser', '==', true)
+      .limit(1)
       .get();
       
-    if (snapshot.empty) {
-      return res.json({ workspaces: [] });
-    }
-
-    const workspaces = [];
-    const orgIdsToFetch = new Set();
-    const userRoleMap = new Map();
-
-    snapshot.docs.forEach(doc => {
+    if (!systemUserQuery.empty) {
+      const doc = systemUserQuery.docs[0];
       const data = doc.data();
-      if (data.isSystemUser) {
+      if (data.isActive) {
         workspaces.push({
           id: 'system',
           name: 'System Administration',
           role: 'system_admin'
         });
-      } else if (data.organizationId) {
-        orgIdsToFetch.add(data.organizationId);
-        userRoleMap.set(data.organizationId, data.role || 'employee');
       }
-    });
+    }
 
-    // Fetch the actual organization names
-    if (orgIdsToFetch.size > 0) {
-      const orgRefs = Array.from(orgIdsToFetch).map(orgId => db.collection('organizations').doc(orgId));
-      if (orgRefs.length > 0) {
-        // Chunk requests if there are more than 100, but getAll supports up to 100.
-        // For standard users, they rarely belong to >100 orgs.
-        const orgDocs = await db.getAll(...orgRefs);
-        orgDocs.forEach(doc => {
-          if (doc.exists && doc.data().isActive) {
-            workspaces.push({
-              id: doc.id,
-              name: doc.data().name || 'Unknown Workspace',
-              role: userRoleMap.get(doc.id)
-            });
-          }
+    // 2. Search across all active organizations
+    const allOrgs = await orgRepo.findAllActive();
+    for (const org of allOrgs) {
+      // Find user in this org
+      const foundUser = await userRepo.findByEmail(org.id, normalizedEmail);
+      if (foundUser && foundUser.isActive) {
+        workspaces.push({
+          id: org.id,
+          name: org.name,
+          role: foundUser.role || 'employee'
         });
       }
     }

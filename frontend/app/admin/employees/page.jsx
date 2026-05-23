@@ -21,7 +21,7 @@ import {
 import {
   Users, UserCheck, UserX, Search, Filter, ArrowLeft, RefreshCw,
   AlertCircle, Edit, Trash2, UserPlus, Building2, ChevronDown,
-  ChevronRight, Mail, Phone, Shield, Eye, X, Save, LayoutGrid, List
+  ChevronRight, Mail, Phone, Shield, Eye, X, Save, LayoutGrid, List, Loader2
 } from "lucide-react"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
@@ -151,6 +151,7 @@ export default function AdminEmployeesPage() {
       return response.json()
     },
     onSuccess: () => {
+      toast.success('Employee updated successfully')
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
       setEditDialogOpen(false)
@@ -176,22 +177,38 @@ export default function AdminEmployeesPage() {
       }
       return response.json()
     },
-    onMutate: async (id) => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['admin-employees'] })
-      const previousEmployees = queryClient.getQueryData(['admin-employees'])
-      queryClient.setQueryData(['admin-employees'], (old) =>
-        old?.filter((emp) => emp.id !== id && emp.uid !== id)
-      )
-      return { previousEmployees }
-    },
-    onError: (err, id, context) => {
-      queryClient.setQueryData(['admin-employees'], context.previousEmployees)
-      toast.error(err.message)
-    },
-    onSettled: () => {
+    onSuccess: () => {
+      toast.success('Employee deleted successfully')
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+    },
+    onError: (err) => {
+      toast.error(err.message)
+    },
+  })
+
+  // ── Restore Employee Mutation ────────────────────
+  const restoreMutation = useMutation({
+    mutationFn: async (id) => {
+      const token = await getValidIdToken()
+      const base = getApiBase()
+      const response = await fetch(`${base}/api/admin/employees/${id}/restore`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Failed to restore employee')
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      toast.success('Employee restored successfully')
+      queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+    },
+    onError: (err) => {
+      toast.error(err.message)
     },
   })
 
@@ -215,6 +232,7 @@ export default function AdminEmployeesPage() {
       return response.json()
     },
     onSuccess: () => {
+      toast.success('Manager assigned successfully')
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setManagerDialogOpen(false)
       setAssigningEmployee(null)
@@ -244,6 +262,7 @@ export default function AdminEmployeesPage() {
       return response.json()
     },
     onSuccess: () => {
+      toast.success('Employee created successfully')
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
       setCreateDialogOpen(false)
@@ -279,6 +298,7 @@ export default function AdminEmployeesPage() {
       return res.json()
     },
     onSuccess: () => {
+      toast.success('Department created successfully')
       queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
       setDeptDialogOpen(false)
       setDeptForm({ name: "", description: "", maxEmployees: 50 })
@@ -303,6 +323,7 @@ export default function AdminEmployeesPage() {
       return res.json()
     },
     onSuccess: () => {
+      toast.success('Department deleted successfully')
       queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setDeleteDeptConfirmOpen(false)
@@ -334,6 +355,7 @@ export default function AdminEmployeesPage() {
       return res.json()
     },
     onSuccess: () => {
+      toast.success('Department member created successfully')
       queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setDeptMemberDialogOpen(false)
@@ -647,37 +669,79 @@ export default function AdminEmployeesPage() {
               </Button>
             )}
 
-            {/* Delete (not for self, BO, or admins) */}
+            {/* Delete/Restore (not for self, BO, or admins) */}
             {!isOwner && !isAdmin && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                    title="Delete"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Employee</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete <strong>{emp.name}</strong>? This will deactivate their account.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="border-slate-200">Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                      onClick={() => deleteMutation.mutate(id)}
+              emp.isActive === false ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-green-600 hover:bg-green-50"
+                      title="Restore"
+                      disabled={restoreMutation.isPending && restoreMutation.variables === id}
                     >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      {restoreMutation.isPending && restoreMutation.variables === id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Restore Employee</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to restore <strong>{emp.name}</strong>? This will reactivate their account and allow them to log in again.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-slate-200">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => restoreMutation.mutate(id)}
+                      >
+                        Restore
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                      title="Delete"
+                      disabled={deleteMutation.isPending && deleteMutation.variables === id}
+                    >
+                      {deleteMutation.isPending && deleteMutation.variables === id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete <strong>{emp.name}</strong>? This will deactivate their account.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-slate-200">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => deleteMutation.mutate(id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )
             )}
           </div>
         </TableCell>
