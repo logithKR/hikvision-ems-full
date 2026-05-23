@@ -282,5 +282,5 @@ export function getRoleRedirectPath(role) {
     'employee': '/employee/dashboard',
     'system_admin': '/system-admin/dashboard'
   };
-  return paths[role] || '/role-selection';
+  return paths[role] || '/login';
 }

@@ -24,7 +24,7 @@ export default function WeeklyHoursPage() {
 
   useEffect(() => {
     if (!sessionStorage.getItem("employeeLoggedIn")) {
-      safeRedirect(navigate, "/employee/login")
+      safeRedirect(navigate, "/login")
     }
   }, [navigate])
 
@@ -43,7 +43,7 @@ export default function WeeklyHoursPage() {
   if (queryError?.message === "SESSION_EXPIRED") {
     sessionStorage.removeItem("employeeLoggedIn")
     sessionStorage.removeItem("firebaseToken")
-    safeRedirect(navigate, "/employee/login")
+    safeRedirect(navigate, "/login")
   }
 
   if (loading) {

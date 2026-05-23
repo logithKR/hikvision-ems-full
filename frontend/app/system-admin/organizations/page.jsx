@@ -51,14 +51,14 @@ export default function SystemAdminOrganizationsPage() {
 
     useEffect(() => {
         if (!isAuthenticated()) {
-            navigate("/system-admin/login")
+            navigate("/login")
             return
         }
 
         const user = getCurrentUser()
         if (!user || user.role !== "system_admin") {
             toast.error("Unauthorized. System Admin access required.")
-            navigate("/system-admin/login")
+            navigate("/login")
             return
         }
 

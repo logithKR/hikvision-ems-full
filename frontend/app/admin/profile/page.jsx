@@ -60,13 +60,13 @@ export default function AdminProfilePage() {
   // Auth Check
   useEffect(() => {
     if (!isAuthenticated()) {
-      navigate("/admin/login")
+      navigate("/login")
       return
     }
 
     const emp = getCurrentUser()
     if (!emp || (emp.role !== "admin" && emp.role !== "system_admin")) {
-      navigate("/admin/login")
+      navigate("/login")
       return
     }
 

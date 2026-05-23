@@ -22,13 +22,13 @@ export default function EmployeeDashboardPage() {
   // Auth Check
   useEffect(() => {
     if (!isAuthenticated()) {
-      safeRedirect(navigate, "/employee/login")
+      safeRedirect(navigate, "/login")
       return
     }
 
     const user = getCurrentUser()
     if (!user || user.role !== 'employee') {
-      safeRedirect(navigate, "/employee/login")
+      safeRedirect(navigate, "/login")
       return
     }
 

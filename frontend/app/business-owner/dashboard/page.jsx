@@ -53,12 +53,12 @@ export default function BusinessOwnerDashboardPage() {
   // Auth check
   useEffect(() => {
     if (!isAuthenticated()) {
-      navigate("/business-owner/login")
+      navigate("/login")
       return
     }
     const user = getCurrentUser()
     if (!user || user.role !== "business_owner") {
-      navigate("/business-owner/login")
+      navigate("/login")
       return
     }
     setCurrentUser(user)
@@ -74,7 +74,7 @@ export default function BusinessOwnerDashboardPage() {
   const dashboardData = data?.dashboardData || null
   const adminQuotas = data?.adminQuotas || []
   const error = queryError?.message === "SESSION_EXPIRED"
-    ? (() => { setTimeout(() => navigate("/business-owner/login"), 2000); return "Session expired. Please login again." })()
+    ? (() => { setTimeout(() => navigate("/login"), 2000); return "Session expired. Please login again." })()
     : queryError?.message || null
 
   const loadDashboard = () => queryClient.invalidateQueries({ queryKey: ['bo-dashboard'] })

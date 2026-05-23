@@ -29,7 +29,7 @@ export default function BusinessOwnerLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Check if current page is login or register
-  const isAuthPage = pathname === "/business-owner/login" || pathname === "/business-owner/register"
+  const isAuthPage = pathname === "/login" || pathname === "/business-owner/register"
 
   useEffect(() => {
     // Skip auth check for login/register pages
@@ -37,13 +37,13 @@ export default function BusinessOwnerLayout({ children }) {
 
     // Check authentication
     if (!isAuthenticated()) {
-      navigate("/business-owner/login")
+      navigate("/login")
       return
     }
 
     const user = getCurrentUser()
     if (!user || user.role !== "business_owner") {
-      navigate("/business-owner/login")
+      navigate("/login")
       return
     }
 
@@ -61,7 +61,7 @@ export default function BusinessOwnerLayout({ children }) {
     if (window.confirm("Are you sure you want to logout?")) {
       queryClient.clear()
       logoutUser()
-      navigate("/business-owner/login")
+      navigate("/login")
     }
   }
 

@@ -19,7 +19,7 @@ export default function LandingPage() {
             <span className="font-bold text-base sm:text-xl tracking-tight text-slate-900">EMS</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-blue-600 text-sm" onClick={() => safeRedirect(navigate, "/role-selection")}>
+            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-blue-600 text-sm" onClick={() => safeRedirect(navigate, "/login")}>
               Login
             </Button>
             <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-200 text-sm" onClick={() => safeRedirect(navigate, "/business-owner/register")}>
@@ -53,7 +53,7 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300 px-4 sm:px-0">
-            <Button size="lg" className="w-full sm:w-auto h-12 sm:h-14 px-8 text-base sm:text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20" onClick={() => safeRedirect(navigate, "/role-selection")}>
+            <Button size="lg" className="w-full sm:w-auto h-12 sm:h-14 px-8 text-base sm:text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20" onClick={() => safeRedirect(navigate, "/login")}>
               Start for Free
             </Button>
             <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 sm:h-14 px-8 text-base sm:text-lg border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900">

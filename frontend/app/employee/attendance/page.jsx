@@ -199,7 +199,7 @@ export default function EmployeeAttendancePage() {
 
   useEffect(() => {
     if (!sessionStorage.getItem("currentUser")) {
-      safeRedirect(navigate, "/employee/login")
+      safeRedirect(navigate, "/login")
     }
   }, [])
 

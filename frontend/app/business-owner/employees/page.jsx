@@ -71,13 +71,13 @@ export default function BusinessOwnerEmployeesPage() {
   useEffect(() => {
     const current = sessionStorage.getItem("currentUser")
     if (!current) {
-      safeRedirect(navigate, "/business-owner/login")
+      safeRedirect(navigate, "/login")
       return
     }
     const emp = JSON.parse(current)
     if (emp.role !== "business_owner") {
       toast.error("Unauthorized. Business Owner access required.")
-      safeRedirect(navigate, "/role-selection")
+      safeRedirect(navigate, "/login")
       return
     }
     setCurrentUser(emp)
@@ -90,7 +90,7 @@ export default function BusinessOwnerEmployeesPage() {
   })
 
   const error = queryError?.message === "SESSION_EXPIRED"
-    ? (() => { setTimeout(() => { sessionStorage.clear(); safeRedirect(navigate, "/business-owner/login") }, 2000); return "Session expired. Please login again." })()
+    ? (() => { setTimeout(() => { sessionStorage.clear(); safeRedirect(navigate, "/login") }, 2000); return "Session expired. Please login again." })()
     : queryError?.message || null
 
   const filteredEmployees = useMemo(() => {

@@ -44,7 +44,7 @@ export default function EmployeeLeavePage() {
 
     useEffect(() => {
         if (!sessionStorage.getItem("currentUser")) {
-            safeRedirect(navigate, "/employee/login")
+            safeRedirect(navigate, "/login")
         }
     }, [])
 

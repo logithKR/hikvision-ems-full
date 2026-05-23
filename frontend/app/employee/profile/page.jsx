@@ -51,7 +51,7 @@ export default function EmployeeProfilePage() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      safeRedirect(navigate, "/employee/login")
+      safeRedirect(navigate, "/login")
       return
     }
     loadProfile()

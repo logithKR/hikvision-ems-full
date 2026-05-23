@@ -68,13 +68,13 @@ export default function BusinessOwnerProfilePage() {
   useEffect(() => {
     const current = sessionStorage.getItem("currentUser")
     if (!current) {
-      safeRedirect(navigate, "/business-owner/login")
+      safeRedirect(navigate, "/login")
       return
     }
     const emp = JSON.parse(current)
     if (emp.role !== "business_owner") {
       toast.error("Unauthorized. Business Owner access required.")
-      safeRedirect(navigate, "/role-selection")
+      safeRedirect(navigate, "/login")
       return
     }
     setCurrentUser(emp)

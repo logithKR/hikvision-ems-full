@@ -20,12 +20,12 @@ export default function AdminDashboardPage() {
   // Auth Check
   useEffect(() => {
     if (!isAuthenticated()) {
-      navigate("/admin/login")
+      navigate("/login")
       return
     }
     const user = getCurrentUser()
     if (!user || (user.role !== "admin" && user.role !== "system_admin")) {
-      navigate("/admin/login")
+      navigate("/login")
       return
     }
     setCurrentUser(user)

@@ -27,7 +27,7 @@ export default function EmployeeLayout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     // Check if current page is login
-    const isAuthPage = pathname === "/employee/login"
+    const isAuthPage = pathname === "/login"
 
     useEffect(() => {
         // Skip auth check for login/register pages
@@ -35,13 +35,13 @@ export default function EmployeeLayout({ children }) {
 
         // Check authentication
         if (!isAuthenticated()) {
-            navigate("/employee/login")
+            navigate("/login")
             return
         }
 
         const user = getCurrentUser()
         if (!user || user.role !== "employee") {
-            navigate("/employee/login")
+            navigate("/login")
             return
         }
 
@@ -59,7 +59,7 @@ export default function EmployeeLayout({ children }) {
         if (window.confirm("Are you sure you want to logout?")) {
             queryClient.clear()
             logoutUser()
-            navigate("/employee/login")
+            navigate("/login")
         }
     }
 

@@ -25,14 +25,14 @@ export function safeRedirect(navigate, path) {
     // Prevent protocol-relative URLs (//evil.com)
     if (path.startsWith('//')) {
       console.warn('⚠️ Protocol-relative URL blocked:', path);
-      navigate('/role-selection');
+      navigate('/login');
       return;
     }
 
     // Prevent javascript: URLs
     if (path.toLowerCase().startsWith('javascript:')) {
       console.warn('⚠️ JavaScript URL blocked:', path);
-      navigate('/role-selection');
+      navigate('/login');
       return;
     }
 
@@ -66,22 +66,22 @@ export function handleLogout(navigate, userType = null) {
     localStorage.removeItem('systemAdminLoggedIn');
 
     // Redirect to appropriate login page
-    let loginPath = '/role-selection';
+    let loginPath = '/login';
     if (userType) {
       const loginPaths = {
-        'admin': '/admin/login',
-        'employee': '/employee/login',
-        'business_owner': '/business-owner/login',
-        'system_admin': '/system-admin/login'
+        'admin': '/login',
+        'employee': '/login',
+        'business_owner': '/login',
+        'system_admin': '/login'
       };
-      loginPath = loginPaths[userType] || '/role-selection';
+      loginPath = loginPaths[userType] || '/login';
     }
 
     safeRedirect(navigate, loginPath);
   } catch (error) {
     console.error('❌ Error during logout:', error);
     // Even if cleanup fails, still try to redirect
-    safeRedirect(navigate, '/role-selection');
+    safeRedirect(navigate, '/login');
   }
 }
 
@@ -98,7 +98,7 @@ export function redirectByRole(navigate, role) {
     'system_admin': '/system-admin/dashboard'
   };
 
-  const destination = roleRoutes[role] || '/role-selection';
+  const destination = roleRoutes[role] || '/login';
   console.log(`✅ Redirecting ${role} to ${destination}`);
   safeRedirect(navigate, destination);
 }
@@ -110,16 +110,16 @@ export function redirectByRole(navigate, role) {
  * @param {string} returnUrl - URL to return to after login
  */
 export function redirectToLogin(navigate, role = null, returnUrl = null) {
-  let loginPath = '/role-selection';
+  let loginPath = '/login';
 
   if (role) {
     const loginRoutes = {
-      'admin': '/admin/login',
-      'business_owner': '/business-owner/login',
-      'employee': '/employee/login',
-      'system_admin': '/system-admin/login'
+      'admin': '/login',
+      'business_owner': '/login',
+      'employee': '/login',
+      'system_admin': '/login'
     };
-    loginPath = loginRoutes[role] || '/role-selection';
+    loginPath = loginRoutes[role] || '/login';
   }
 
   if (returnUrl) {

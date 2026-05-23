@@ -59,7 +59,7 @@ export default function BusinessRegisterPage() {
       if (result.success) {
         setSuccess(true)
         setTimeout(() => {
-          navigate("/business-owner/login")
+          navigate("/login")
         }, 2000)
       } else {
         setError(result.error || "Registration failed. Please try again.")
@@ -263,7 +263,7 @@ export default function BusinessRegisterPage() {
           </div>
         </div>
 
-        <Link to="/business-owner/login">
+        <Link to="/login">
           <Button
             variant="outline"
             className="w-full h-11 text-slate-600 hover:bg-slate-50 transition-all font-medium border-slate-200"

@@ -21,9 +21,9 @@ export default function AdminOrgChartPage() {
     const [expandedDepts, setExpandedDepts] = useState({})
 
     useEffect(() => {
-        if (!isAuthenticated()) { navigate("/admin/login"); return }
+        if (!isAuthenticated()) { navigate("/login"); return }
         const user = getCurrentUser()
-        if (!user || (user.role !== "admin" && user.role !== "system_admin")) { navigate("/admin/login"); return }
+        if (!user || (user.role !== "admin" && user.role !== "system_admin")) { navigate("/login"); return }
         setCurrentUser(user)
     }, [navigate])
 
