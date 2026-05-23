@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { getCurrentUser, isAuthenticated, logoutUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 export default function SystemAdminLayout({ children }) {
     const navigate = useNavigate()
@@ -38,7 +39,7 @@ export default function SystemAdminLayout({ children }) {
 
         const user = getCurrentUser()
         if (!user || user.role !== "system_admin") {
-            alert("Unauthorized. System Admin access required.")
+            toast.error("Unauthorized. System Admin access required.")
             navigate("/system-admin/login")
             return
         }

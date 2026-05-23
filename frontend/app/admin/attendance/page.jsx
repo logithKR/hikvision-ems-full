@@ -269,7 +269,7 @@ export default function AdminAttendancePage() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px] border-slate-200 text-sm">
+              <SelectTrigger className="w-full sm:w-[160px] border-slate-200 text-sm">
                 <Filter className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>

@@ -19,7 +19,7 @@ export default function AuthLayout({ children, title, subtitle, role = "employee
     };
 
     return (
-        <div className="h-screen overflow-hidden grid lg:grid-cols-2 bg-white">
+        <div className="min-h-screen grid lg:grid-cols-2 bg-white">
             {/* Left Column - Branding (Hidden on Mobile) */}
             <div className="hidden lg:flex flex-col justify-between bg-blue-600 p-12 text-white relative overflow-hidden">
                 {/* Abstract Background Pattern */}
@@ -53,7 +53,7 @@ export default function AuthLayout({ children, title, subtitle, role = "employee
             </div>
 
             {/* Right Column - Auth Form */}
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full">
                 {/* Back Button */}
                 <div className="p-4 flex-shrink-0">
                     <Button

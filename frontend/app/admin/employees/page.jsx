@@ -848,7 +848,7 @@ export default function AdminEmployeesPage() {
             {/* Filter Dropdowns */}
             <div className="flex gap-2 flex-wrap">
               <Select value={deptFilter} onValueChange={setDeptFilter}>
-                <SelectTrigger className="w-[150px] border-slate-200 text-sm">
+                <SelectTrigger className="w-full sm:w-[150px] border-slate-200 text-sm">
                   <Building2 className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
@@ -861,7 +861,7 @@ export default function AdminEmployeesPage() {
               </Select>
 
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-[140px] border-slate-200 text-sm">
+                <SelectTrigger className="w-full sm:w-[140px] border-slate-200 text-sm">
                   <Shield className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
                   <SelectValue placeholder="Role" />
                 </SelectTrigger>
@@ -875,7 +875,7 @@ export default function AdminEmployeesPage() {
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[130px] border-slate-200 text-sm">
+                <SelectTrigger className="w-full sm:w-[130px] border-slate-200 text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -886,7 +886,7 @@ export default function AdminEmployeesPage() {
               </Select>
 
               <Select value={managerFilter} onValueChange={setManagerFilter}>
-                <SelectTrigger className="w-[160px] border-slate-200 text-sm">
+                <SelectTrigger className="w-full sm:w-[160px] border-slate-200 text-sm">
                   <UserPlus className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
                   <SelectValue placeholder="Manager" />
                 </SelectTrigger>

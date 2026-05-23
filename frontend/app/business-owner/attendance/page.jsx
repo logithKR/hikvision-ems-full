@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, UserCheck, UserX, Coffee, LogOut, ArrowLeft, RefreshCw, Users, MapPin, ArrowUpDown } from "lucide-react"
 import { format } from "date-fns"
 import { safeRedirect } from "@/lib/redirectUtils"
+import { toast } from "sonner"
 
 const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
@@ -61,7 +62,7 @@ export default function BusinessOwnerAttendancePage() {
     }
     const emp = JSON.parse(current)
     if (emp.role !== "business_owner") {
-      alert("Unauthorized. Business Owner access required.")
+      toast.error("Unauthorized. Business Owner access required.")
       safeRedirect(navigate, "/role-selection")
       return
     }

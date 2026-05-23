@@ -12,6 +12,7 @@ import {
 import { format } from "date-fns"
 import { safeRedirect } from "@/lib/redirectUtils"
 import { getValidIdToken } from "@/lib/firebaseClient"
+import { toast } from "sonner"
 
 const getApiBase = () => {
   const url = import.meta.env.VITE_API_URL || ''
@@ -270,11 +271,11 @@ export default function EmployeeAttendancePage() {
         }, 3000)
       } else {
         const err = await response.json()
-        alert(`Failed to ${action}: ${err.error}`)
+        toast.error(`Failed to ${action}: ${err.error}`)
       }
     } catch (error) {
       console.error('Action error:', error)
-      alert('Network error')
+      toast.error('Network error')
     } finally {
       setActionLoading(false)
     }
@@ -384,7 +385,7 @@ export default function EmployeeAttendancePage() {
 
             <div className="flex flex-wrap gap-4">
               {!todayRecord?.checkIn ? (
-                <Button onClick={() => handleAction('checkIn')} disabled={actionLoading || isFetching} className="bg-blue-600 hover:bg-blue-700 min-w-[150px]">
+                <Button onClick={() => handleAction('checkIn')} disabled={actionLoading || isFetching} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto sm:min-w-[150px]">
                   {actionLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
                   Check In
                 </Button>
@@ -395,7 +396,7 @@ export default function EmployeeAttendancePage() {
                       onClick={() => handleAction(isOnBreak ? 'breakOut' : 'breakIn')}
                       disabled={actionLoading || isFetching}
                       variant="outline"
-                      className={`min-w-[150px] ${isOnBreak ? 'border-amber-500 text-amber-700' : 'border-blue-500 text-blue-700'}`}
+                      className={`w-full sm:w-auto sm:min-w-[150px] ${isOnBreak ? 'border-amber-500 text-amber-700' : 'border-blue-500 text-blue-700'}`}
                     >
                       <Coffee className="mr-2 h-4 w-4" />
                       {isOnBreak ? "End Break" : "Start Break"}
@@ -405,7 +406,7 @@ export default function EmployeeAttendancePage() {
                     onClick={() => handleAction('checkOut')}
                     disabled={actionLoading || isFetching}
                     variant="destructive"
-                    className="min-w-[150px]"
+                    className="w-full sm:w-auto sm:min-w-[150px]"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     Check Out

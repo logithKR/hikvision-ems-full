@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
+import { toast } from "sonner"
 
 const getApiBase = () => {
     const url = import.meta.env.VITE_API_URL || ""
@@ -56,7 +57,7 @@ export default function SystemAdminOrganizationsPage() {
 
         const user = getCurrentUser()
         if (!user || user.role !== "system_admin") {
-            alert("Unauthorized. System Admin access required.")
+            toast.error("Unauthorized. System Admin access required.")
             navigate("/system-admin/login")
             return
         }
@@ -152,11 +153,11 @@ export default function SystemAdminOrganizationsPage() {
                 loadOrganizations()
             } else {
                 const errData = await response.json()
-                alert(errData.error || "Failed to update limits")
+                toast.error(errData.error || "Failed to update limits")
             }
         } catch (error) {
             console.error("Failed to update limits:", error)
-            alert("Failed to update limits: " + error.message)
+            toast.error("Failed to update limits: " + error.message)
         } finally {
             setActionLoading(false)
         }
@@ -197,13 +198,13 @@ export default function SystemAdminOrganizationsPage() {
                 queryClient.invalidateQueries({ queryKey: ['sa-dashboard'] })
             } else {
                 const errData = await response.json()
-                alert(errData.error || `Failed to ${action} organization`)
+                toast.error(errData.error || `Failed to ${action} organization`)
                 // Revert
                 loadOrganizations()
             }
         } catch (error) {
             console.error(`Failed to ${action} organization:`, error)
-            alert(`Failed to ${action} organization: ` + error.message)
+            toast.error(`Failed to ${action} organization: ` + error.message)
             // Revert
             loadOrganizations()
         } finally {

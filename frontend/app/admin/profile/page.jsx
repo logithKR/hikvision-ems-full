@@ -28,6 +28,7 @@ import {
 import { format } from "date-fns"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
+import { toast } from "sonner"
 
 export default function AdminProfilePage() {
   const navigate = useNavigate()
@@ -37,6 +38,7 @@ export default function AdminProfilePage() {
   const [currentUser, setCurrentUser] = useState(null)
   const [organization, setOrganization] = useState(null)
   const [loading, setLoading] = useState(false) // Fixed: Added missing state
+  const [saving, setSaving] = useState(false)
 
   const [editMode, setEditMode] = useState(false)
   const [editedProfile, setEditedProfile] = useState({
@@ -111,6 +113,7 @@ export default function AdminProfilePage() {
   }
 
   const handleSaveProfile = async () => {
+    setSaving(true)
     const token = await getValidIdToken()
     const base = getApiBase()
 
@@ -132,13 +135,15 @@ export default function AdminProfilePage() {
         sessionStorage.setItem("currentUser", JSON.stringify(updatedUser))
         setCurrentUser(updatedUser)
         setEditMode(false)
-        alert("Profile updated successfully!")
+        toast.success("Profile updated successfully!")
       } else {
-        alert("Failed to update profile")
+        toast.error("Failed to update profile")
       }
     } catch (error) {
       console.error("Save profile error:", error)
-      alert("Network error")
+      toast.error("Network error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -156,15 +161,16 @@ export default function AdminProfilePage() {
     e.preventDefault()
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("New passwords don't match!")
+      toast.error("New passwords don't match!")
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      alert("Password must be at least 6 characters")
+      toast.error("Password must be at least 6 characters")
       return
     }
 
+    setSaving(true)
     const token = await getValidIdToken()
     const base = getApiBase()
 
@@ -182,7 +188,7 @@ export default function AdminProfilePage() {
       })
 
       if (response.ok) {
-        alert("Password changed successfully!")
+        toast.success("Password changed successfully!")
         setShowPasswordChange(false)
         setPasswordData({
           currentPassword: "",
@@ -191,11 +197,13 @@ export default function AdminProfilePage() {
         })
       } else {
         const data = await response.json()
-        alert(`${data.error || "Failed to change password"}`)
+        toast.error(`${data.error || "Failed to change password"}`)
       }
     } catch (error) {
       console.error("Change password error:", error)
-      alert("Network error")
+      toast.error("Network error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -325,8 +333,8 @@ export default function AdminProfilePage() {
                     <Button variant="ghost" size="sm" onClick={handleCancelEdit} className="text-slate-500">
                       Cancel
                     </Button>
-                    <Button size="sm" onClick={handleSaveProfile} className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <Save className="mr-2 h-3.5 w-3.5" />
+                    <Button size="sm" onClick={handleSaveProfile} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      {saving ? <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-2 h-3.5 w-3.5" />}
                       Save
                     </Button>
                   </div>
@@ -511,8 +519,8 @@ export default function AdminProfilePage() {
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white">
-                        Update Password
+                      <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
+                        {saving ? "Updating..." : "Update Password"}
                       </Button>
                     </div>
                   </form>

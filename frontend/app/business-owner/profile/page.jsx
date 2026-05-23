@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { safeRedirect } from "@/lib/redirectUtils"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
@@ -62,6 +63,7 @@ export default function BusinessOwnerProfilePage() {
     newPassword: "",
     confirmPassword: "",
   })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const current = sessionStorage.getItem("currentUser")
@@ -71,7 +73,7 @@ export default function BusinessOwnerProfilePage() {
     }
     const emp = JSON.parse(current)
     if (emp.role !== "business_owner") {
-      alert("Unauthorized. Business Owner access required.")
+      toast.error("Unauthorized. Business Owner access required.")
       safeRedirect(navigate, "/role-selection")
       return
     }
@@ -91,6 +93,7 @@ export default function BusinessOwnerProfilePage() {
   })
 
   const handleSaveProfile = async () => {
+    setSaving(true)
     const token = sessionStorage.getItem("firebaseToken")
     const base = getApiBase()
 
@@ -111,13 +114,15 @@ export default function BusinessOwnerProfilePage() {
         sessionStorage.setItem("currentUser", JSON.stringify(updatedUser))
         setCurrentUser(updatedUser)
         setEditMode(false)
-        alert("Profile updated successfully!")
+        toast.success("Profile updated successfully!")
       } else {
-        alert("Failed to update profile")
+        toast.error("Failed to update profile")
       }
     } catch (error) {
       console.error("Save profile error:", error)
-      alert("Network error")
+      toast.error("Network error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -135,15 +140,16 @@ export default function BusinessOwnerProfilePage() {
     e.preventDefault()
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("New passwords don't match!")
+      toast.error("New passwords don't match!")
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      alert("Password must be at least 6 characters")
+      toast.error("Password must be at least 6 characters")
       return
     }
 
+    setSaving(true)
     const token = sessionStorage.getItem("firebaseToken")
     const base = getApiBase()
 
@@ -161,7 +167,7 @@ export default function BusinessOwnerProfilePage() {
       })
 
       if (response.ok) {
-        alert("Password changed successfully!")
+        toast.success("Password changed successfully!")
         setShowPasswordChange(false)
         setPasswordData({
           currentPassword: "",
@@ -170,11 +176,13 @@ export default function BusinessOwnerProfilePage() {
         })
       } else {
         const data = await response.json()
-        alert(`${data.error || "Failed to change password"}`)
+        toast.error(`${data.error || "Failed to change password"}`)
       }
     } catch (error) {
       console.error("Change password error:", error)
-      alert("Network error")
+      toast.error("Network error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -298,8 +306,8 @@ export default function BusinessOwnerProfilePage() {
                     <X className="mr-2 h-4 w-4" />
                     Cancel
                   </Button>
-                  <Button size="sm" onClick={handleSaveProfile} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                    <Save className="mr-2 h-4 w-4" />
+                  <Button size="sm" onClick={handleSaveProfile} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                    {saving ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Save
                   </Button>
                 </div>
@@ -526,8 +534,8 @@ export default function BusinessOwnerProfilePage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                      Update Password
+                    <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                      {saving ? "Updating..." : "Update Password"}
                     </Button>
                   </div>
                 </form>

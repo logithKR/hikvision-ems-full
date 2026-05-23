@@ -28,6 +28,7 @@ import {
   ArrowUpDown
 } from "lucide-react"
 import { safeRedirect } from "@/lib/redirectUtils"
+import { toast } from "sonner"
 
 const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
@@ -75,7 +76,7 @@ export default function BusinessOwnerEmployeesPage() {
     }
     const emp = JSON.parse(current)
     if (emp.role !== "business_owner") {
-      alert("Unauthorized. Business Owner access required.")
+      toast.error("Unauthorized. Business Owner access required.")
       safeRedirect(navigate, "/role-selection")
       return
     }
@@ -115,12 +116,12 @@ export default function BusinessOwnerEmployeesPage() {
     e.preventDefault()
 
     if (!currentUser) {
-      alert("User session not found. Please refresh the page.")
+      toast.error("User session not found. Please refresh the page.")
       return
     }
 
     if (!newAdmin.password || newAdmin.password.length < 6) {
-      alert("Password must be at least 6 characters long")
+      toast.error("Password must be at least 6 characters long")
       return
     }
 
@@ -167,18 +168,16 @@ export default function BusinessOwnerEmployeesPage() {
           password: "",
         })
 
-        alert(
-          `Admin created successfully!\n\n` +
-          `Email: ${adminEmail}\n` +
-          `Password: ${adminPassword}\n\n` +
-          `Share these credentials securely with the admin.`
+        toast.success(
+          `Admin created successfully! Email: ${adminEmail}, Password: ${adminPassword}. Share these credentials securely with the admin.`,
+          { duration: 10000 }
         )
       } else {
-        alert(`${data.error || "Failed to create admin"}`)
+        toast.error(`${data.error || "Failed to create admin"}`)
       }
     } catch (error) {
       console.error("Create admin error:", error)
-      alert("Network error")
+      toast.error("Network error")
     } finally {
       setCreateLoading(false)
     }
@@ -214,14 +213,15 @@ export default function BusinessOwnerEmployeesPage() {
         // Success - trigger background refresh to be sure
         queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
         queryClient.invalidateQueries({ queryKey: ['bo-dashboard'] })
+        toast.success("Admin deleted successfully")
       } else {
-        alert("Failed to delete admin")
+        toast.error("Failed to delete admin")
         // Revert optimistic update
         queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
       }
     } catch (error) {
       console.error("Delete admin error:", error)
-      alert("Network error")
+      toast.error("Network error")
       queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
     }
   }

@@ -15,6 +15,7 @@ import { format } from "date-fns"
 import { safeRedirect } from "@/lib/redirectUtils"
 import { isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
+import { toast } from "sonner"
 
 export default function EmployeeProfilePage() {
   const navigate = useNavigate()
@@ -137,14 +138,14 @@ export default function EmployeeProfilePage() {
           address: updatedEmployee.address
         }))
 
-        alert('Profile updated successfully')
+        toast.success('Profile updated successfully')
       } else {
         const err = await response.json()
-        alert(`Failed to update: ${err.error}`)
+        toast.error(`Failed to update: ${err.error}`)
       }
     } catch (error) {
       console.error('Update error:', error)
-      alert('Network error')
+      toast.error('Network error')
     } finally {
       setSaving(false)
     }
@@ -153,12 +154,12 @@ export default function EmployeeProfilePage() {
   const handlePasswordChange = async (e) => {
     e.preventDefault()
     if (passData.newPassword !== passData.confirmPassword) {
-      alert("New passwords do not match")
+      toast.error("New passwords do not match")
       return
     }
 
     if (passData.newPassword.length < 6) {
-      alert("Password must be at least 6 characters")
+      toast.error("Password must be at least 6 characters")
       return
     }
 
@@ -179,15 +180,15 @@ export default function EmployeeProfilePage() {
       })
 
       if (response.ok) {
-        alert('Password changed successfully')
+        toast.success('Password changed successfully')
         setPassData({ currentPassword: "", newPassword: "", confirmPassword: "" })
       } else {
         const err = await response.json()
-        alert(`Failed to change password: ${err.error}`)
+        toast.error(`Failed to change password: ${err.error}`)
       }
     } catch (error) {
       console.error('Password error:', error)
-      alert('Network error')
+      toast.error('Network error')
     } finally {
       setSaving(false)
     }

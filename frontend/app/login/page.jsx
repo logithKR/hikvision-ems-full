@@ -99,8 +99,8 @@ export default function UnifiedLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8 border border-gray-100">
+    <div className="min-h-screen flex bg-gray-50 p-4">
+      <div className="max-w-md w-full m-auto bg-white rounded-2xl shadow-xl overflow-hidden p-8 border border-gray-100">
         
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-blue-200">

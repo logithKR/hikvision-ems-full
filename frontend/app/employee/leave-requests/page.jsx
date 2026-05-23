@@ -12,6 +12,7 @@ import { Calendar, FileText, CheckCircle, XCircle, Clock, AlertCircle } from "lu
 import { format } from "date-fns"
 import { safeRedirect } from "@/lib/redirectUtils"
 import { getValidIdToken } from "@/lib/firebaseClient"
+import { toast } from "sonner"
 
 const getApiBase = () => {
     const url = import.meta.env.VITE_API_URL || ''
@@ -106,13 +107,13 @@ export default function EmployeeLeavePage() {
                 // Revert
                 queryClient.setQueryData(['emp-my-leaves'], previousData)
                 const errorData = await response.json()
-                alert(errorData.error || 'Failed to submit application')
+                toast.error(errorData.error || 'Failed to submit application')
             }
         } catch (error) {
             console.error('Error submitting:', error)
             // Revert
             queryClient.setQueryData(['emp-my-leaves'], previousData)
-            alert('Network error')
+            toast.error('Network error')
         } finally {
             setSubmitting(false)
         }
@@ -141,14 +142,15 @@ export default function EmployeeLeavePage() {
                 // Background refresh to ensure consistency
                 queryClient.invalidateQueries({ queryKey: ['emp-my-leaves'] })
                 queryClient.invalidateQueries({ queryKey: ['emp-dashboard'] })
+                toast.success('Leave cancelled successfully')
             } else {
-                alert('Failed to cancel leave')
+                toast.error('Failed to cancel leave')
                 // Revert
                 queryClient.invalidateQueries({ queryKey: ['emp-my-leaves'] })
             }
         } catch (error) {
             console.error('Error cancelling:', error)
-            alert('Network error')
+            toast.error('Network error')
             // Revert
             queryClient.invalidateQueries({ queryKey: ['emp-my-leaves'] })
         }
@@ -338,7 +340,7 @@ export default function EmployeeLeavePage() {
                                     <Button type="button" variant="outline" onClick={() => setActiveTab('my-requests')}>
                                         Cancel
                                     </Button>
-                                    <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]">
+                                    <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto sm:min-w-[150px]">
                                         {submitting ? "Submitting..." : "Submit Request"}
                                     </Button>
                                 </div>
