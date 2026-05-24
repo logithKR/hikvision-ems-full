@@ -204,7 +204,7 @@ router.post('/login', async (req, res) => {
  */
 router.post('/google', async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, organizationId } = req.body;
 
     if (!idToken) {
       return res.status(400).json({ error: 'Missing ID token' });
@@ -222,43 +222,61 @@ router.post('/google', async (req, res) => {
     // Check if user exists in Firestore
     let user = null;
     let userOrgId = null;
-
-    // 1. Check Root Users (System Users)
     const db = require('firebase-admin').firestore();
-    const systemUserQuery = await db.collection('users')
-      .where('email', '==', email)
-      .where('isSystemUser', '==', true)
-      .limit(1)
-      .get();
 
-    if (!systemUserQuery.empty) {
-      const doc = systemUserQuery.docs[0];
-      user = { id: doc.id, ...doc.data() };
-      // If it has organizationId, handle it, otherwise it's system user
-      if (user.organizationId) {
-        userOrgId = user.organizationId;
-        // Refetch from Org collection to be sure? Or trust Root?
-        // Our model says users are in organizations/{orgId}/users/{userId}
-        // BUT System Admins are in /users
-        // Let's assume standard users are ONLY in orgs unless they are system users.
+    // 1. If organizationId is provided, look strictly in that organization
+    if (organizationId) {
+      console.log('🏢 Organization ID provided for Google Auth. Checking organization user...');
+      if (organizationId === 'system') {
+        const systemUserQuery = await db.collection('users')
+          .where('email', '==', email)
+          .where('isSystemUser', '==', true)
+          .limit(1)
+          .get();
+
+        if (!systemUserQuery.empty) {
+          const doc = systemUserQuery.docs[0];
+          user = { id: doc.id, ...doc.data() };
+          userOrgId = null;
+          console.log('✅ Found system user:', user.name);
+        }
       } else {
-        userOrgId = null; // System User
+        const orgUser = await userRepo.findByEmail(organizationId, email);
+        if (orgUser) {
+          user = orgUser;
+          userOrgId = organizationId;
+          console.log('✅ Found user in target organization:', user.name);
+        }
       }
-      console.log('✅ Found user in global cache/system:', user.name);
-    }
+    } 
+    // 2. If NO organizationId is provided, do fallback search
+    else {
+      console.log('🔍 No Organization ID provided for Google Auth. Checking for system user...');
+      const systemUserQuery = await db.collection('users')
+        .where('email', '==', email)
+        .where('isSystemUser', '==', true)
+        .limit(1)
+        .get();
 
-    // 2. If not found, Search in Organizations
-    if (!user) {
-      console.log('🔍 Searching across all organizations...');
-      const allOrgs = await orgRepo.findAllActive();
+      if (!systemUserQuery.empty) {
+        const doc = systemUserQuery.docs[0];
+        user = { id: doc.id, ...doc.data() };
+        userOrgId = null;
+        console.log('✅ Found system user:', user.name);
+      }
 
-      for (const org of allOrgs) {
-        const foundUser = await userRepo.findByEmail(org.id, email);
-        if (foundUser) {
-          user = foundUser;
-          userOrgId = org.id;
-          console.log('✅ User found in organization:', org.name);
-          break;
+      if (!user) {
+        console.log('🔍 Searching across all organizations...');
+        const allOrgs = await orgRepo.findAllActive();
+
+        for (const org of allOrgs) {
+          const foundUser = await userRepo.findByEmail(org.id, email);
+          if (foundUser) {
+            user = foundUser;
+            userOrgId = org.id;
+            console.log('✅ User found in organization:', org.name);
+            break;
+          }
         }
       }
     }

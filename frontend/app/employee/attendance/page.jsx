@@ -174,9 +174,10 @@ const getIPLocation = async (updateStatus) => {
           source: 'ip',
           timestamp: Date.now(),
           city: data.city,
-          region: data.region
+          region: data.region,
+          isUnverified: true
         }
-        if (updateStatus) updateStatus(`IP location acquired (${data.city || 'approximate'})`)
+        if (updateStatus) updateStatus(`Approximate IP location acquired (${data.city})`)
         return result
       }
     }
@@ -502,8 +503,12 @@ export default function EmployeeAttendancePage() {
                                   className={`inline-flex items-center gap-1 text-xs ${colorClass} hover:underline`}
                                   title={`Lat: ${loc.lat.toFixed(6)}, Lng: ${loc.lng.toFixed(6)}${loc.accuracy ? `, ±${Math.round(loc.accuracy)}m` : ''}`}
                                 >
-                                  <MapPin className="h-3 w-3 shrink-0" />
-                                  {label}: View Map
+                                  {loc.isUnverified ? (
+                                    <AlertCircle className="h-3 w-3 shrink-0 text-amber-500" title="Unverified IP Location" />
+                                  ) : (
+                                    <MapPin className="h-3 w-3 shrink-0" />
+                                  )}
+                                  {label}: {loc.isUnverified && loc.city ? `${loc.city} (IP)` : 'View Map'}
                                 </a>
                               );
                             }

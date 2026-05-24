@@ -13,6 +13,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true, // Allows the server to be accessible over the network (Tailscale/Ngrok)
+    headers: {
+      "Cross-Origin-Opener-Policy": "unsafe-none"
+    },
     
     // 1. ALLOWED HOSTS: This fixes the "Host not allowed" error from Ngrok
     allowedHosts: [

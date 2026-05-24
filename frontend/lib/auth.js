@@ -93,9 +93,9 @@ export async function loginUser(email, password, organizationId = null, expected
 
 /**
  * Login with Google
- * @param {string} role - 'employee' | 'admin' | 'business_owner'
+ * @param {string} organizationId - Optional organization ID
  */
-export async function loginWithGoogle(role = 'employee') {
+export async function loginWithGoogle(organizationId = null) {
   try {
     console.log('🔵 Starting Google Login...');
     const { auth, signInWithPopup, GoogleAuthProvider } = await import('./firebaseClient');
@@ -110,15 +110,15 @@ export async function loginWithGoogle(role = 'employee') {
     console.log('✅ Google Login successful. Token obtained.');
     console.log('📤 Sending token to backend for verification...');
 
-    const response = await fetch(`${getApiBase()}/auth/google-login`, {
+    const response = await fetch(`${getApiBase()}/auth/google`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: idToken, role }),
+      body: JSON.stringify({ idToken, organizationId }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Backend verification failed');
+      throw new Error(errorData.error || errorData.message || 'Backend verification failed');
     }
 
     const data = await response.json();

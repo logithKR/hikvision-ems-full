@@ -49,10 +49,11 @@ router.post('/record', authenticateToken, requireEmployee, async (req, res) => {
 // Get my records
 router.get('/my-records', authenticateToken, requireEmployee, async (req, res) => {
   try {
+    const limit = parseInt(req.query.limit) || 30;
     const records = await attendanceService.getEmployeeRecords(
       req.user.organizationId,
       req.user.uid,
-      { limit: 10 }
+      { limit }
     );
     res.json(records);
   } catch (error) {
