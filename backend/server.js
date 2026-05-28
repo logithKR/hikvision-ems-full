@@ -21,7 +21,8 @@ const attendanceRoutes = require('./routes/attendance');
 const leaveRoutes = require('./routes/leave');
 const teamRoutes = require('./routes/team');
 const systemAdminRoutes = require('./routes/system_admin');
-const hikvisionRoutes = require('./routes/hikvision');
+// HIKVISION TEMPORARILY DISABLED
+// const hikvisionRoutes = require('./routes/hikvision');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,7 +103,10 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/system-admin', systemAdminRoutes);
-app.use('/api/event', hikvisionRoutes);
+// HIKVISION TEMPORARILY DISABLED
+// This route was used for Hikvision attendance device callbacks.
+// Re-enable if Hikvision integration is needed again.
+// app.use('/api/event', hikvisionRoutes);
 
 // ========================================
 // STATIC SERVING (PRODUCTION)

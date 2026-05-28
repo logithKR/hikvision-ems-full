@@ -90,6 +90,13 @@ async function findEmsUserByHikvisionId(hikvisionEmployeeId) {
 }
 
 router.post('/', upload.any(), async (req, res) => {
+    // HIKVISION TEMPORARILY DISABLED
+    // The webhook listener is disabled for security reasons to prevent device spoofing.
+    // The physical device will receive this 503 response and stop processing.
+    console.warn(`⚠️ Blocked incoming Hikvision webhook request from ${req.ip} (Integration disabled)`);
+    return res.status(503).json({ message: "Hikvision integration temporarily disabled for security reasons." });
+
+    /* --- ORIGINAL LOGIC BELOW ---
     try {
         const contentType = req.headers['content-type'] || "";
         let payload = null;
@@ -171,7 +178,7 @@ router.post('/', upload.any(), async (req, res) => {
                     scanTime,
                     createdAt: new Date().toISOString(),
                 });
-            } catch (e) { /* non-critical */ }
+            } catch (e) { }
             console.warn(`⚠️ Hikvision scan ignored — ID "${hikvisionEmployeeId}" not linked to any user.`);
             return res.status(200).json(HIKVISION_SUCCESS);
         }
@@ -286,10 +293,12 @@ router.post('/', upload.any(), async (req, res) => {
         console.error("❌ [Hikvision] Unhandled error:", err.message);
         return res.status(500).json({ success: false, error: "ERROR" });
     }
+    --- ORIGINAL LOGIC END --- */
 });
 
 router.get('/', (req, res) => {
-    res.status(200).send("Hikvision Event API Running");
+    // res.status(200).send("Hikvision Event API Running");
+    res.status(503).json({ message: "Hikvision integration temporarily disabled for security reasons." });
 });
 
 module.exports = router;
