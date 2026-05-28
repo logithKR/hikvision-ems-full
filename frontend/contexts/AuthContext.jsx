@@ -31,6 +31,32 @@ export function AuthProvider({ children }) {
           // Get ID token
           const token = await firebaseUser.getIdToken();
           
+          // Decode the token to check for custom claims (organizationId or role)
+          // If neither exists, this is a raw Google/social sign-in that hasn't been
+          // exchanged for a custom token yet — skip the backend call and let
+          // the login page handle the full flow.
+          let hasCustomClaims = false;
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            hasCustomClaims = !!(payload.organizationId || payload.role);
+          } catch (e) {
+            // If we can't decode, assume we should try the backend
+            hasCustomClaims = true;
+          }
+
+          if (!hasCustomClaims) {
+            console.log('⏳ Firebase user has no custom claims yet (raw Google sign-in). Skipping backend /me call.');
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              firebaseUser,
+              token,
+              pendingCustomToken: true
+            });
+            setLoading(false);
+            return;
+          }
+
           // Fetch user data from backend
           try {
             const userData = await getCurrentUser(token);

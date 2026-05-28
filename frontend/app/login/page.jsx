@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { loginUser, loginWithGoogle } from '@/lib/auth';
+import { loginUser, storeAuthData, getRoleRedirectPath } from '@/lib/auth';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,19 +56,21 @@ export default function UnifiedLoginPage() {
         
         if (method === 'google') {
           // Immediately login using Google token
+          // keep loading true as it cascades into executeGoogleLogin
           await executeGoogleLogin(token, orgId);
         } else {
           // Move to password step
+          setLoading(false);
           setStep(3);
         }
       } else {
         // Multiple workspaces: user needs to select one
+        setLoading(false);
         setStep(2);
       }
     } catch (error) {
       toast.error(error.message);
-    } finally {
-      if (method === 'manual') setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -79,31 +81,66 @@ export default function UnifiedLoginPage() {
   };
 
   const handleGoogleAuth = async () => {
-    // DO NOT set state before calling popup to avoid browser popup blockers!
+    // Due to Cross-Origin-Opener-Policy, signInWithPopup may hang forever
+    // because the browser blocks popup→parent window communication.
+    // Strategy: Fire the popup, but ALSO listen for onAuthStateChanged as a fallback.
+    // Whichever resolves first wins.
     try {
       if (!auth) throw new Error("Firebase auth not initialized");
       
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({
-        prompt: 'select_account' // Always show account chooser
+        prompt: 'select_account'
       });
+
+      // Create a promise that resolves when onAuthStateChanged fires with a Google user
+      const authStatePromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          unsubscribe();
+          reject(new Error('Google sign-in timed out. Please try again.'));
+        }, 60000); // 60 second timeout
+
+        const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+          if (firebaseUser && firebaseUser.providerData?.some(p => p.providerId === 'google.com')) {
+            clearTimeout(timeout);
+            unsubscribe();
+            resolve(firebaseUser);
+          }
+        });
+      });
+
+      // Fire the popup (don't await - it may hang due to COOP)
+      signInWithPopup(auth, provider).catch((err) => {
+        // Only handle actual errors, not COOP hangs
+        if (err.code === 'auth/popup-closed-by-user') {
+          toast.info('Login cancelled.');
+        } else if (err.code === 'auth/popup-blocked') {
+          toast.error('Popup was blocked. Please allow popups for this site.');
+        }
+        // Don't re-throw — authStatePromise handles the success path
+      });
+
+      // Wait for auth state change (this ALWAYS fires even with COOP issues)
+      const firebaseUser = await authStatePromise;
       
-      const result = await signInWithPopup(auth, provider);
-      
-      // Now it's safe to set loading state
       setLoading(true);
       
-      const user = result.user;
-      const idToken = await user.getIdToken();
-      const userEmail = user.email;
+      const idToken = await firebaseUser.getIdToken();
+      const userEmail = firebaseUser.email;
+      
+      console.log('✅ Google auth detected via onAuthStateChanged:', userEmail);
       
       setEmail(userEmail);
       setGoogleToken(idToken);
       await fetchWorkspaces(userEmail, idToken, 'google');
       
     } catch (error) {
-      console.error(error);
-      toast.error("Google Authentication failed");
+      console.error('Google Auth Error:', error);
+      if (error.message !== 'Google sign-in timed out. Please try again.') {
+        toast.error(error.message || "Google Authentication failed");
+      } else {
+        toast.error(error.message);
+      }
       setLoading(false);
     }
   };
@@ -139,12 +176,10 @@ export default function UnifiedLoginPage() {
       }
 
       // Store auth data
-      import('@/lib/auth').then(({ storeAuthData }) => {
-        storeAuthData({
-          isLoggedIn: true,
-          token: finalToken,
-          user: data.user
-        });
+      storeAuthData({
+        isLoggedIn: true,
+        token: finalToken,
+        user: data.user
       });
 
       toast.success('Login successful!');
@@ -249,25 +284,31 @@ export default function UnifiedLoginPage() {
               disabled={loading}
               className="w-full h-12 bg-white hover:bg-slate-50 text-slate-700 border-slate-200 rounded-xl font-medium shadow-sm flex items-center justify-center gap-3 transition-all"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Google
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              ) : (
+                <>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Google
+                </>
+              )}
             </Button>
           </div>
         )}
