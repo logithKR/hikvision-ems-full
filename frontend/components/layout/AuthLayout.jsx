@@ -60,10 +60,10 @@ export default function AuthLayout({ children, title, subtitle, role = "employee
                         variant="ghost"
                         size="sm"
                         className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        onClick={() => navigate("/login")}
+                        onClick={() => navigate("/")}
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Role Selection
+                        Back to Home
                     </Button>
                 </div>
 
