@@ -9,47 +9,69 @@ import dagre from 'dagre'
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
-    Building2, Users, ArrowLeft, RefreshCw, AlertCircle, 
-    Search, Plus, Minus, Maximize2, Shield
+    Building2, Users, RefreshCw, AlertCircle, 
+    Search, Plus, Minus, Maximize2, Shield, X, Mail, Phone, Calendar, Briefcase, Hash
 } from "lucide-react"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
 
 const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
-// --- 1. Custom React Flow Node ---
+// --- 1. Custom React Flow Node (Premium Redesign) ---
 const OrgNode = ({ data, id }) => {
     return (
-        <div className={cn(
-            "relative min-w-[220px] bg-white border rounded-xl p-4 shadow-sm transition-all hover:shadow-md",
-            data.isMatch ? "border-amber-400 ring-2 ring-amber-50" : "border-slate-200"
-        )}>
+        <div 
+            className={cn(
+                "relative w-[260px] bg-white border rounded-xl p-4 shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md hover:border-blue-300",
+                data.isMatch ? "border-amber-400 ring-2 ring-amber-50 shadow-amber-100" : "border-slate-200 shadow-slate-100/50",
+                data.isSelected && "border-blue-500 ring-2 ring-blue-50"
+            )}
+            onClick={() => data.onNodeClick(data.originalData)}
+        >
             <Handle type="target" position={Position.Top} className="!bg-slate-300 !w-2 !h-2 !border-none" />
             
-            {data.isHod && <div className="absolute top-0 right-0 p-2"><Shield className="h-4 w-4 text-purple-500" /></div>}
-
-            <div className="flex items-center gap-3">
-                <div className={cn("h-11 w-11 rounded-full flex items-center justify-center font-bold text-sm", data.bgColor, data.textColor)}>
-                    {data.label.charAt(0).toUpperCase()}
+            {/* Status Dot */}
+            {data.type !== 'dept' && data.type !== 'org' && (
+                <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    <span className={cn("h-2 w-2 rounded-full", data.isActive ? "bg-emerald-500" : "bg-slate-300")} title={data.isActive ? "Active" : "Offline"} />
                 </div>
-                <div className="flex-1 overflow-hidden">
-                    <p className="font-semibold text-slate-800 text-sm truncate" title={data.label}>{data.label}</p>
-                    <p className="text-xs text-slate-500 truncate" title={data.role}>{data.role}</p>
+            )}
+
+            {/* Department Icon / HOD Badge */}
+            {data.isHod && <div className="absolute top-2 right-8 p-1"><Shield className="h-4 w-4 text-purple-500" /></div>}
+
+            <div className="flex items-start gap-3">
+                {data.profileImageUrl ? (
+                    <img src={data.profileImageUrl} alt={data.label} className="h-12 w-12 rounded-full object-cover shadow-inner border border-slate-100" />
+                ) : (
+                    <div className={cn("h-12 w-12 rounded-full flex items-center justify-center font-bold text-sm shadow-inner shrink-0", data.bgColor, data.textColor)}>
+                        {data.type === 'dept' ? <Building2 className="h-5 w-5" /> : data.label.charAt(0).toUpperCase()}
+                    </div>
+                )}
+                
+                <div className="flex-1 overflow-hidden mt-0.5">
+                    <p className="font-semibold text-slate-900 text-sm truncate" title={data.label}>{data.label}</p>
+                    <p className="text-[11.5px] text-slate-500 truncate mt-0.5" title={data.role}>{data.role}</p>
+                    {data.employeeId && <p className="text-[10px] text-slate-400 font-mono mt-1">ID: {data.employeeId}</p>}
                 </div>
             </div>
             
             {data.meta && (
-                <div className="mt-3 text-[11px] bg-slate-50 border border-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-medium inline-block">
+                <div className="mt-3.5 text-[11px] bg-slate-50 border border-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-medium inline-flex items-center gap-1">
                     {data.meta}
                 </div>
             )}
             
             {data.hasChildren && (
                 <button 
-                    className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 rounded-full h-7 w-7 flex items-center justify-center hover:bg-slate-50 shadow-sm z-10 text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors"
-                    onClick={() => data.toggleNode(id)}
+                    className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 bg-white border border-slate-300 rounded-full h-7 w-7 flex items-center justify-center hover:bg-blue-50 shadow-sm z-10 text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        data.toggleNode(id);
+                    }}
                     title={data.isExpanded ? "Collapse" : "Expand"}
                 >
                     {data.isExpanded ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
@@ -68,10 +90,11 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     const dagreGraph = new dagre.graphlib.Graph()
     dagreGraph.setDefaultEdgeLabel(() => ({}))
 
-    const nodeWidth = 240
-    const nodeHeight = 120
+    const nodeWidth = 260
+    const nodeHeight = 140
 
-    dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 100 })
+    // Increased spacing for a premium feel
+    dagreGraph.setGraph({ rankdir: direction, nodesep: 80, ranksep: 120 })
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight })
@@ -100,7 +123,7 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 }
 
 // --- 3. Flow Canvas Component ---
-const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm }) => {
+const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeClick, selectedNodeId }) => {
     const { fitView } = useReactFlow()
     const [nodes, setNodes] = useState([])
     const [edges, setEdges] = useState([])
@@ -125,12 +148,19 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm }) => {
                     role: node.subtitle,
                     meta: node.meta,
                     isHod: node.isHod,
+                    type: node.type,
+                    profileImageUrl: node.profileImageUrl,
+                    employeeId: node.employeeId,
+                    isActive: node.isActive,
                     bgColor: node.type === 'org' ? 'bg-blue-100' : node.type === 'dept' ? 'bg-slate-100' : node.isHod ? 'bg-purple-100' : node.isManager ? 'bg-indigo-100' : 'bg-slate-100',
                     textColor: node.type === 'org' ? 'text-blue-700' : node.type === 'dept' ? 'text-slate-600' : node.isHod ? 'text-purple-700' : node.isManager ? 'text-indigo-700' : 'text-slate-600',
                     isExpanded,
                     hasChildren,
                     isMatch,
-                    toggleNode
+                    isSelected: selectedNodeId === node.id,
+                    toggleNode,
+                    onNodeClick,
+                    originalData: node
                 }
             })
 
@@ -161,7 +191,7 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm }) => {
         setTimeout(() => {
             fitView({ padding: 0.2, duration: 800 })
         }, 100)
-    }, [treeData, expandedNodes, searchTerm, toggleNode, fitView])
+    }, [treeData, expandedNodes, searchTerm, toggleNode, fitView, onNodeClick, selectedNodeId])
 
     return (
         <ReactFlow
@@ -170,23 +200,29 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm }) => {
             nodeTypes={nodeTypes}
             fitView
             minZoom={0.1}
-            maxZoom={1.5}
+            maxZoom={2}
             defaultEdgeOptions={{ type: 'smoothstep' }}
             proOptions={{ hideAttribution: true }}
-            className="bg-slate-50"
+            panOnScroll={true} // Figma style panning
+            selectionOnDrag={true}
+            zoomOnScroll={false} // Zoom requires Ctrl/Cmd + scroll or pinch
+            zoomOnDoubleClick={true}
+            className="bg-[#f8fafc]"
         >
             <Background color="#cbd5e1" gap={24} size={1.5} />
             <Controls showInteractive={false} className="bg-white border-slate-200 shadow-md rounded-lg overflow-hidden [&>button]:border-slate-100" />
             <MiniMap 
                 nodeStrokeColor="#cbd5e1" 
-                nodeColor="#f8fafc" 
-                nodeBorderRadius={4}
-                maskColor="rgba(241, 245, 249, 0.7)"
-                className="bg-white border-slate-200 shadow-md rounded-lg overflow-hidden" 
+                nodeColor="#f1f5f9" 
+                nodeBorderRadius={8}
+                maskColor="rgba(241, 245, 249, 0.6)"
+                className="bg-white border-slate-200 shadow-lg rounded-xl overflow-hidden" 
             />
             
-            <Panel position="bottom-center" className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-slate-200 text-xs text-slate-500 font-medium">
-                Scroll to Zoom • Click & Drag to Pan
+            <Panel position="bottom-center" className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-slate-200 text-xs text-slate-600 font-medium flex items-center gap-3">
+                <span><kbd className="bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 font-sans mr-1">Scroll</kbd> to Pan</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                <span><kbd className="bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 font-sans mr-1">Ctrl</kbd> + <kbd className="bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 font-sans">Scroll</kbd> to Zoom</span>
             </Panel>
         </ReactFlow>
     )
@@ -198,6 +234,7 @@ export default function AdminOrgChartPage() {
     const [currentUser, setCurrentUser] = useState(null)
     const [expandedNodes, setExpandedNodes] = useState({})
     const [searchTerm, setSearchTerm] = useState("")
+    const [selectedNode, setSelectedNode] = useState(null) // Controls side panel
 
     useEffect(() => {
         if (!isAuthenticated()) { navigate("/login"); return }
@@ -255,6 +292,7 @@ export default function AdminOrgChartPage() {
                     name: item.hod.name,
                     subtitle: item.hod.position || 'Head of Department',
                     isHod: true,
+                    ...item.hod,
                     children: []
                 }
                 deptNode.children.push(deptHeadNode)
@@ -267,11 +305,13 @@ export default function AdminOrgChartPage() {
                 name: mgr.name,
                 subtitle: mgr.position || 'Manager',
                 isManager: true,
+                ...mgr,
                 children: (mgr.teamMembers || []).map(tm => ({
                     id: `user-${tm.id}`,
                     type: 'user',
                     name: tm.name,
                     subtitle: tm.position || 'Team Member',
+                    ...tm,
                     children: []
                 }))
             }))
@@ -282,6 +322,7 @@ export default function AdminOrgChartPage() {
                 type: 'user',
                 name: emp.name,
                 subtitle: emp.position || 'Employee',
+                ...emp,
                 children: []
             }))
 
@@ -308,6 +349,7 @@ export default function AdminOrgChartPage() {
                     type: 'user',
                     name: emp.name,
                     subtitle: emp.position || 'Employee',
+                    ...emp,
                     children: []
                 }))
             })
@@ -343,36 +385,36 @@ export default function AdminOrgChartPage() {
     if (!currentUser) return null
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-[calc(100vh-1rem)]">
+        <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-[calc(100vh-1rem)] overflow-hidden relative">
             {/* Header Controls */}
-            <div className="flex-none bg-white border-b border-slate-200 px-4 sm:px-6 py-4 z-30 shadow-sm">
+            <div className="flex-none bg-white border-b border-slate-200 px-4 sm:px-6 py-4 z-30 shadow-sm relative">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                            <Building2 className="h-6 w-6 text-blue-600" />
+                            <Building2 className="h-6 w-6 text-indigo-600" />
                             Organization Flowchart
                         </h1>
-                        <p className="text-sm text-slate-500 mt-1">Interactive map of your enterprise hierarchy</p>
+                        <p className="text-sm text-slate-500 mt-1">Interactive enterprise hierarchy</p>
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <div className="relative flex-1 sm:w-64 min-w-[200px]">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                             <Input 
                                 placeholder="Find user or department..." 
-                                className="pl-9 bg-slate-50 border-slate-200"
+                                className="pl-9 bg-slate-50 border-slate-200 rounded-full focus-visible:ring-indigo-500"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <Button variant="outline" size="sm" onClick={expandAll} className="hidden sm:flex gap-2 text-slate-600">
+                        <Button variant="outline" size="sm" onClick={expandAll} className="hidden sm:flex gap-2 text-slate-600 rounded-full">
                             <Maximize2 className="h-4 w-4" /> Expand All
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="gap-2 text-blue-600 hover:bg-blue-50">
+                        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="gap-2 text-indigo-600 hover:bg-indigo-50 rounded-full">
                             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
                         </Button>
-                        <Button variant="outline" onClick={() => navigate("/admin/employees")} className="gap-2 hidden md:flex">
-                            <Users className="h-4 w-4" /> Employees
+                        <Button onClick={() => navigate("/admin/employees")} className="gap-2 hidden md:flex rounded-full bg-indigo-600 hover:bg-indigo-700">
+                            <Users className="h-4 w-4" /> View List
                         </Button>
                     </div>
                 </div>
@@ -380,17 +422,17 @@ export default function AdminOrgChartPage() {
 
             {/* Error State */}
             {error && (
-                <div className="m-6 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl shadow-lg">
                     <AlertCircle className="h-5 w-5 text-red-500" />
                     <p className="text-sm text-red-700">{error.message}</p>
                 </div>
             )}
 
             {/* React Flow Canvas */}
-            <div className="flex-1 w-full h-full relative">
+            <div className="flex-1 w-full h-full relative bg-[#f8fafc]">
                 {isLoading ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-10">
-                        <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
+                        <RefreshCw className="h-8 w-8 text-indigo-600 animate-spin" />
                     </div>
                 ) : treeData ? (
                     <ReactFlowProvider>
@@ -399,9 +441,114 @@ export default function AdminOrgChartPage() {
                             expandedNodes={expandedNodes} 
                             toggleNode={toggleNode} 
                             searchTerm={searchTerm} 
+                            onNodeClick={setSelectedNode}
+                            selectedNodeId={selectedNode?.id}
                         />
                     </ReactFlowProvider>
                 ) : null}
+            </div>
+
+            {/* Sliding Side Panel for Rich Data */}
+            <div 
+                className={cn(
+                    "absolute top-0 right-0 h-full w-full sm:w-[400px] bg-white shadow-2xl border-l border-slate-200 transform transition-transform duration-300 ease-in-out z-50 flex flex-col",
+                    selectedNode ? "translate-x-0" : "translate-x-full"
+                )}
+            >
+                {selectedNode && (
+                    <>
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <h2 className="font-semibold text-slate-800">Details</h2>
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedNode(null)} className="h-8 w-8 rounded-full hover:bg-slate-200 text-slate-500">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {selectedNode.type === 'dept' || selectedNode.type === 'org' ? (
+                                <div className="text-center py-8">
+                                    <div className="mx-auto h-20 w-20 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4">
+                                        <Building2 className="h-10 w-10" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-900">{selectedNode.name}</h3>
+                                    <p className="text-slate-500 mt-1">{selectedNode.subtitle}</p>
+                                    <Badge variant="secondary" className="mt-4">{selectedNode.meta}</Badge>
+                                </div>
+                            ) : (
+                                <div>
+                                    {/* Profile Header */}
+                                    <div className="flex items-center gap-4 mb-8">
+                                        {selectedNode.profileImageUrl ? (
+                                            <img src={selectedNode.profileImageUrl} alt={selectedNode.name} className="h-20 w-20 rounded-full object-cover shadow-sm border border-slate-200" />
+                                        ) : (
+                                            <div className="h-20 w-20 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-2xl font-bold">
+                                                {selectedNode.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900">{selectedNode.name}</h3>
+                                            <p className="text-slate-500 font-medium">{selectedNode.subtitle}</p>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className={cn("h-2.5 w-2.5 rounded-full", selectedNode.isActive ? "bg-emerald-500" : "bg-slate-300")} />
+                                                <span className="text-xs font-medium text-slate-600">{selectedNode.isActive ? "Active Employee" : "Inactive"}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Detailed Info Cards */}
+                                    <div className="space-y-4">
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Employment Details</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <Hash className="h-4 w-4 text-slate-400" />
+                                                    <span className="text-slate-500 w-24">Employee ID:</span>
+                                                    <span className="font-medium text-slate-900">{selectedNode.employeeId || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <Briefcase className="h-4 w-4 text-slate-400" />
+                                                    <span className="text-slate-500 w-24">Role:</span>
+                                                    <span className="font-medium text-slate-900 capitalize">{selectedNode.role || 'Employee'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <Calendar className="h-4 w-4 text-slate-400" />
+                                                    <span className="text-slate-500 w-24">Joined:</span>
+                                                    <span className="font-medium text-slate-900">
+                                                        {selectedNode.joinDate ? new Date(selectedNode.joinDate).toLocaleDateString() : 'Unknown'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Contact</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <Mail className="h-4 w-4 text-slate-400" />
+                                                    <span className="font-medium text-slate-900 truncate">{selectedNode.email || 'No email provided'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <Phone className="h-4 w-4 text-slate-400" />
+                                                    <span className="font-medium text-slate-900">{selectedNode.phone || 'No phone provided'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="mt-8 grid grid-cols-2 gap-3">
+                                        <Button variant="outline" className="w-full bg-white" onClick={() => window.location.href = `mailto:${selectedNode.email}`}>
+                                            <Mail className="mr-2 h-4 w-4" /> Message
+                                        </Button>
+                                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => navigate("/admin/employees")}>
+                                            <Users className="mr-2 h-4 w-4" /> Manage
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     )

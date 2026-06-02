@@ -956,6 +956,23 @@ router.get('/org-chart', authenticateToken, requireAdminOrBusinessOwner, async (
     ]);
 
     // Build hierarchy
+    const formatUser = (u) => {
+      if (!u) return null;
+      return {
+        id: u.id,
+        name: u.name,
+        position: u.position,
+        email: u.email,
+        phone: u.phone,
+        employeeId: u.employeeId,
+        profileImageUrl: u.profileImageUrl,
+        isActive: u.isActive,
+        joinDate: u.createdAt || u.joinDate, // fallback for joinDate
+        departmentId: u.departmentId,
+        role: u.role
+      };
+    };
+
     const chart = departments.map(dept => {
       const deptMembers = allUsers.filter(u => u.departmentId === dept.id);
       const hod = deptMembers.find(u => u.isDeptHead);
@@ -964,22 +981,22 @@ router.get('/org-chart', authenticateToken, requireAdminOrBusinessOwner, async (
 
       return {
         department: { id: dept.id, name: dept.name, maxEmployees: dept.maxEmployees, memberCount: dept.memberCount },
-        hod: hod ? { id: hod.id, name: hod.name, position: hod.position } : null,
+        hod: formatUser(hod),
         managers: managers.map(m => ({
-          id: m.id, name: m.name, position: m.position,
+          ...formatUser(m),
           teamMembers: (m.directReports || []).map(rid => {
             const r = allUsers.find(u => u.id === rid);
-            return r ? { id: r.id, name: r.name, position: r.position, departmentId: r.departmentId } : null;
+            return formatUser(r);
           }).filter(Boolean)
         })),
-        employees: employees.map(e => ({ id: e.id, name: e.name, position: e.position }))
+        employees: employees.map(e => formatUser(e))
       };
     });
 
     // Include unassigned users (no department)
-    const unassigned = allUsers.filter(u => !u.departmentId && u.role === 'employee');
+    const unassigned = allUsers.filter(u => !u.departmentId && u.role === 'employee').map(e => formatUser(e));
 
-    res.json({ chart, unassigned: unassigned.map(u => ({ id: u.id, name: u.name, position: u.position })) });
+    res.json({ chart, unassigned });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
