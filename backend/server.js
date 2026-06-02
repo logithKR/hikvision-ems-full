@@ -49,12 +49,10 @@ console.log('━━━━━━━━━━━━━━━━━━━━━━�
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow the configured frontend URL, Postman (no origin), and local network testing IPs
-    if (!origin || origin === FRONTEND_URL || origin.match(/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+):\d+$/)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    // Dynamically allow all origins to prevent AWS deployment CORS blocking.
+    // This reflects the requesting origin back to the browser, 
+    // satisfying the strict requirements for credentials: true
+    callback(null, true);
   },
   credentials: true
 }));

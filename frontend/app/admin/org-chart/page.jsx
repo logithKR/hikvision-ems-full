@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo, useCallback } from "react"
+import { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { ReactFlow, Controls, Background, MiniMap, Handle, Position, Panel, useReactFlow, ReactFlowProvider } from '@xyflow/react'
@@ -45,7 +45,7 @@ const OrgNode = ({ data, id }) => {
 
             <div className="flex items-start gap-3">
                 {data.profileImageUrl ? (
-                    <img src={data.profileImageUrl} alt={data.label} className="h-12 w-12 rounded-full object-cover shadow-inner border border-slate-100" />
+                    <img src={data.profileImageUrl} alt={data.label} className="h-12 w-12 rounded-full object-cover shadow-inner border border-slate-100 shrink-0" />
                 ) : (
                     <div className={cn("h-12 w-12 rounded-full flex items-center justify-center font-bold text-sm shadow-inner shrink-0", data.bgColor, data.textColor)}>
                         {data.type === 'dept' ? <Building2 className="h-5 w-5" /> : data.label.charAt(0).toUpperCase()}
@@ -53,14 +53,28 @@ const OrgNode = ({ data, id }) => {
                 )}
                 
                 <div className="flex-1 overflow-hidden mt-0.5">
-                    <p className="font-semibold text-slate-900 text-sm truncate" title={data.label}>{data.label}</p>
-                    <p className="text-[11.5px] text-slate-500 truncate mt-0.5" title={data.role}>{data.role}</p>
-                    {data.employeeId && <p className="text-[10px] text-slate-400 font-mono mt-1">ID: {data.employeeId}</p>}
+                    <p className="font-semibold text-slate-900 text-[13px] truncate" title={data.label}>{data.label}</p>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5" title={data.role}>{data.role}</p>
+                    
+                    {data.type !== 'dept' && data.type !== 'org' && (
+                        <div className="mt-2 space-y-1">
+                            {data.employeeId && (
+                                <p className="text-[10px] text-slate-400 flex items-center gap-1.5 truncate">
+                                    <Hash className="h-3 w-3 shrink-0" /> {data.employeeId}
+                                </p>
+                            )}
+                            {data.email && (
+                                <p className="text-[10px] text-slate-400 flex items-center gap-1.5 truncate">
+                                    <Mail className="h-3 w-3 shrink-0" /> {data.email}
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
             
             {data.meta && (
-                <div className="mt-3.5 text-[11px] bg-slate-50 border border-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-medium inline-flex items-center gap-1">
+                <div className="mt-3.5 text-[10px] bg-slate-50 border border-slate-100 text-slate-600 px-2 py-1 rounded font-medium inline-flex items-center gap-1">
                     {data.meta}
                 </div>
             )}
@@ -91,10 +105,10 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     dagreGraph.setDefaultEdgeLabel(() => ({}))
 
     const nodeWidth = 260
-    const nodeHeight = 140
+    const nodeHeight = 160 // Increased to fit email/id
 
     // Increased spacing for a premium feel
-    dagreGraph.setGraph({ rankdir: direction, nodesep: 80, ranksep: 120 })
+    dagreGraph.setGraph({ rankdir: direction, nodesep: 80, ranksep: 140 })
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight })
@@ -127,6 +141,8 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
     const { fitView } = useReactFlow()
     const [nodes, setNodes] = useState([])
     const [edges, setEdges] = useState([])
+    const isInitialLayout = useRef(true)
+    const prevSearch = useRef(searchTerm)
 
     useEffect(() => {
         if (!treeData) return
@@ -187,9 +203,20 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
         setNodes(layoutedNodes)
         setEdges(layoutedEdges)
         
-        // Wait for render then fit view
+        // Wait for render then fit view only on first load or search change
         setTimeout(() => {
-            fitView({ padding: 0.2, duration: 800 })
+            if (isInitialLayout.current) {
+                fitView({ padding: 0.2, duration: 800 })
+                isInitialLayout.current = false
+                prevSearch.current = searchTerm
+            } else if (prevSearch.current !== searchTerm) {
+                // Pan/Zoom to search results
+                const matchedNodes = layoutedNodes.filter(n => n.data.isMatch)
+                if (matchedNodes.length > 0 && searchTerm.length > 1) {
+                    fitView({ nodes: matchedNodes, padding: 0.5, duration: 800, maxZoom: 1 })
+                }
+                prevSearch.current = searchTerm
+            }
         }, 100)
     }, [treeData, expandedNodes, searchTerm, toggleNode, fitView, onNodeClick, selectedNodeId])
 
@@ -382,7 +409,60 @@ export default function AdminOrgChartPage() {
         }
     }
 
+    const handleSearchChange = (e) => {
+        const val = e.target.value
+        setSearchTerm(val)
+        
+        if (val.length > 2 && treeData) {
+            // Auto-expand tree to reveal search results
+            const newExpanded = { ...expandedNodes }
+            let shouldUpdate = false
+            
+            const findAndExpand = (node, path) => {
+                const match = node.name.toLowerCase().includes(val.toLowerCase()) || 
+                              (node.employeeId && node.employeeId.toLowerCase().includes(val.toLowerCase())) ||
+                              (node.email && node.email.toLowerCase().includes(val.toLowerCase()))
+                
+                let childMatch = false
+                if (node.children) {
+                    node.children.forEach(c => {
+                        if (findAndExpand(c, [...path, node.id])) {
+                            childMatch = true
+                        }
+                    })
+                }
+                
+                if (match || childMatch) {
+                    path.forEach(p => {
+                        if (!newExpanded[p]) {
+                            newExpanded[p] = true
+                            shouldUpdate = true
+                        }
+                    })
+                    if (!newExpanded[node.id]) {
+                        newExpanded[node.id] = true
+                        shouldUpdate = true
+                    }
+                    return true
+                }
+                return false
+            }
+            
+            findAndExpand(treeData, [])
+            if (shouldUpdate) {
+                setExpandedNodes(newExpanded)
+            }
+        }
+    }
+
     if (!currentUser) return null
+
+    // Helper to find dept name
+    const getDeptName = (deptId) => {
+        if (!chartData || !chartData.chart) return 'Unknown Department'
+        const dept = chartData.chart.find(c => c.department.id === deptId)
+        return dept ? dept.department.name : 'Unknown Department'
+    }
 
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-[calc(100vh-1rem)] overflow-hidden relative">
@@ -404,7 +484,7 @@ export default function AdminOrgChartPage() {
                                 placeholder="Find user or department..." 
                                 className="pl-9 bg-slate-50 border-slate-200 rounded-full focus-visible:ring-indigo-500"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={handleSearchChange}
                             />
                         </div>
                         <Button variant="outline" size="sm" onClick={expandAll} className="hidden sm:flex gap-2 text-slate-600 rounded-full">
@@ -489,47 +569,59 @@ export default function AdminOrgChartPage() {
                                             <h3 className="text-xl font-bold text-slate-900">{selectedNode.name}</h3>
                                             <p className="text-slate-500 font-medium">{selectedNode.subtitle}</p>
                                             <div className="flex items-center gap-2 mt-2">
-                                                <span className={cn("h-2.5 w-2.5 rounded-full", selectedNode.isActive ? "bg-emerald-500" : "bg-slate-300")} />
-                                                <span className="text-xs font-medium text-slate-600">{selectedNode.isActive ? "Active Employee" : "Inactive"}</span>
+                                                <span className={cn("h-2.5 w-2.5 rounded-full", selectedNode.isActive ? "bg-emerald-500" : "bg-rose-500")} />
+                                                <span className="text-xs font-medium text-slate-600">{selectedNode.isActive ? "Active Employee" : "Inactive / On Leave"}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Detailed Info Cards */}
                                     <div className="space-y-4">
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Employment Details</h4>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm">
+                                            <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" /> Employment Details</h4>
                                             <div className="space-y-3">
                                                 <div className="flex items-center gap-3 text-sm">
-                                                    <Hash className="h-4 w-4 text-slate-400" />
-                                                    <span className="text-slate-500 w-24">Employee ID:</span>
-                                                    <span className="font-medium text-slate-900">{selectedNode.employeeId || 'N/A'}</span>
+                                                    <Hash className="h-4 w-4 text-slate-400 shrink-0" />
+                                                    <span className="text-slate-500 w-24 shrink-0">Employee ID:</span>
+                                                    <span className="font-medium text-slate-900 truncate">{selectedNode.employeeId || 'N/A'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3 text-sm">
-                                                    <Briefcase className="h-4 w-4 text-slate-400" />
-                                                    <span className="text-slate-500 w-24">Role:</span>
-                                                    <span className="font-medium text-slate-900 capitalize">{selectedNode.role || 'Employee'}</span>
+                                                    <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+                                                    <span className="text-slate-500 w-24 shrink-0">Department:</span>
+                                                    <span className="font-medium text-slate-900 truncate">{selectedNode.departmentId ? getDeptName(selectedNode.departmentId) : 'Unassigned'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3 text-sm">
-                                                    <Calendar className="h-4 w-4 text-slate-400" />
-                                                    <span className="text-slate-500 w-24">Joined:</span>
+                                                    <Shield className="h-4 w-4 text-slate-400 shrink-0" />
+                                                    <span className="text-slate-500 w-24 shrink-0">Designation:</span>
+                                                    <span className="font-medium text-slate-900 capitalize truncate">{selectedNode.role || 'Employee'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                                                    <span className="text-slate-500 w-24 shrink-0">Joined:</span>
                                                     <span className="font-medium text-slate-900">
-                                                        {selectedNode.joinDate ? new Date(selectedNode.joinDate).toLocaleDateString() : 'Unknown'}
+                                                        {selectedNode.joinDate ? new Date(selectedNode.joinDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}
                                                     </span>
                                                 </div>
+                                                {selectedNode.gender && (
+                                                    <div className="flex items-center gap-3 text-sm">
+                                                        <Users className="h-4 w-4 text-slate-400 shrink-0" />
+                                                        <span className="text-slate-500 w-24 shrink-0">Gender:</span>
+                                                        <span className="font-medium text-slate-900 capitalize">{selectedNode.gender}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Contact</h4>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm">
+                                            <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Contact Information</h4>
                                             <div className="space-y-3">
-                                                <div className="flex items-center gap-3 text-sm">
-                                                    <Mail className="h-4 w-4 text-slate-400" />
-                                                    <span className="font-medium text-slate-900 truncate">{selectedNode.email || 'No email provided'}</span>
+                                                <div className="flex items-center gap-3 text-sm group">
+                                                    <Mail className="h-4 w-4 text-slate-400 shrink-0 group-hover:text-indigo-500 transition-colors" />
+                                                    <span className="font-medium text-slate-900 truncate select-all">{selectedNode.email || 'No email provided'}</span>
                                                 </div>
-                                                <div className="flex items-center gap-3 text-sm">
-                                                    <Phone className="h-4 w-4 text-slate-400" />
-                                                    <span className="font-medium text-slate-900">{selectedNode.phone || 'No phone provided'}</span>
+                                                <div className="flex items-center gap-3 text-sm group">
+                                                    <Phone className="h-4 w-4 text-slate-400 shrink-0 group-hover:text-indigo-500 transition-colors" />
+                                                    <span className="font-medium text-slate-900 select-all">{selectedNode.phone || 'No phone provided'}</span>
                                                 </div>
                                             </div>
                                         </div>

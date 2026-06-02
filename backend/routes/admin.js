@@ -958,43 +958,58 @@ router.get('/org-chart', authenticateToken, requireAdminOrBusinessOwner, async (
     // Build hierarchy
     const formatUser = (u) => {
       if (!u) return null;
+      const { passwordHash, ...rest } = u;
       return {
-        id: u.id,
-        name: u.name,
-        position: u.position,
-        email: u.email,
-        phone: u.phone,
-        employeeId: u.employeeId,
-        profileImageUrl: u.profileImageUrl,
-        isActive: u.isActive,
-        joinDate: u.createdAt || u.joinDate, // fallback for joinDate
-        departmentId: u.departmentId,
-        role: u.role
+        ...rest,
+        joinDate: u.createdAt || u.joinDate,
       };
     };
 
+    const assignedUserIds = new Set();
+
     const chart = departments.map(dept => {
       const deptMembers = allUsers.filter(u => u.departmentId === dept.id);
+      
       const hod = deptMembers.find(u => u.isDeptHead);
-      const managers = deptMembers.filter(u => u.isManager);
-      const employees = deptMembers.filter(u => !u.isDeptHead && !u.isManager);
+      if (hod) assignedUserIds.add(hod.id);
+
+      // Only grab managers that haven't already been claimed (e.g. as HOD)
+      const managers = deptMembers.filter(u => u.isManager && !assignedUserIds.has(u.id));
+      
+      const formattedManagers = managers.map(m => {
+        assignedUserIds.add(m.id);
+        
+        const directReports = (m.directReports || []).map(rid => {
+          const r = allUsers.find(u => u.id === rid);
+          // CRITICAL FIX: If user is missing OR already claimed somewhere else in the hierarchy, skip them to prevent duplicate nodes.
+          if (!r || assignedUserIds.has(r.id)) return null;
+          
+          assignedUserIds.add(r.id);
+          return formatUser(r);
+        }).filter(Boolean);
+
+        return {
+          ...formatUser(m),
+          teamMembers: directReports
+        };
+      });
+
+      // Department employees are those who haven't been assigned as HOD, Manager, or a Direct Report
+      const employees = deptMembers.filter(u => !assignedUserIds.has(u.id));
+      employees.forEach(e => assignedUserIds.add(e.id));
 
       return {
         department: { id: dept.id, name: dept.name, maxEmployees: dept.maxEmployees, memberCount: dept.memberCount },
         hod: formatUser(hod),
-        managers: managers.map(m => ({
-          ...formatUser(m),
-          teamMembers: (m.directReports || []).map(rid => {
-            const r = allUsers.find(u => u.id === rid);
-            return formatUser(r);
-          }).filter(Boolean)
-        })),
+        managers: formattedManagers,
         employees: employees.map(e => formatUser(e))
       };
     });
 
-    // Include unassigned users (no department)
-    const unassigned = allUsers.filter(u => !u.departmentId && u.role === 'employee').map(e => formatUser(e));
+    // Unassigned users are those who are completely orphaned from the tree
+    const unassigned = allUsers
+      .filter(u => !assignedUserIds.has(u.id) && u.role === 'employee')
+      .map(e => formatUser(e));
 
     res.json({ chart, unassigned });
   } catch (error) {
