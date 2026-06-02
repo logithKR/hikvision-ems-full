@@ -1,111 +1,198 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import { ReactFlow, Controls, Background, MiniMap, Handle, Position, Panel, useReactFlow, ReactFlowProvider } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import dagre from 'dagre'
+
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import {
-    Building2, Users, Shield, ArrowLeft, RefreshCw,
-    AlertCircle, Search, Plus, Minus, Maximize2, Minimize2
+    Building2, Users, ArrowLeft, RefreshCw, AlertCircle, 
+    Search, Plus, Minus, Maximize2, Shield
 } from "lucide-react"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { getValidIdToken } from "@/lib/firebaseClient"
 
 const getApiBase = () => import.meta.env.VITE_API_URL || ""
 
-// --- Recursive Node Component ---
-const OrgNode = ({ node, expandedNodes, toggleNode, searchTerm }) => {
-    // Determine if expanded (true by default unless explicitly false)
-    const isExpanded = expandedNodes[node.id] !== false
-    const hasChildren = node.children && node.children.length > 0
-    
-    // Highlight logic
-    const isMatch = searchTerm && node.name.toLowerCase().includes(searchTerm.toLowerCase())
-
+// --- 1. Custom React Flow Node ---
+const OrgNode = ({ data, id }) => {
     return (
-        <li className="org-node">
-            <div className="org-card-container flex flex-col items-center">
-                <div 
-                    className={cn(
-                        "relative w-44 sm:w-48 bg-white border rounded-xl p-4 shadow-sm transition-all duration-200 hover:shadow-md",
-                        node.type === 'org' ? "border-blue-400 shadow-blue-100/50 ring-2 ring-blue-50" : 
-                        node.type === 'dept' ? "border-slate-300" : 
-                        "border-slate-200",
-                        isMatch && "ring-2 ring-amber-400 bg-amber-50"
-                    )}
-                >
-                    {/* Visual Indicators */}
-                    {node.isHod && <div className="absolute top-0 right-0 p-1.5"><Shield className="h-3.5 w-3.5 text-purple-500" /></div>}
-                    
-                    {/* Content */}
-                    <div className="flex flex-col items-center text-center gap-1.5">
-                        {node.type === 'user' ? (
-                            <div className={cn(
-                                "h-12 w-12 rounded-full flex items-center justify-center font-bold text-sm shadow-inner",
-                                node.isHod ? "bg-purple-100 text-purple-700" :
-                                node.isManager ? "bg-blue-100 text-blue-700" :
-                                "bg-slate-100 text-slate-600"
-                            )}>
-                                {node.name.charAt(0).toUpperCase()}
-                            </div>
-                        ) : node.type === 'dept' ? (
-                            <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 mb-1">
-                                <Building2 className="h-5 w-5 text-slate-500" />
-                            </div>
-                        ) : (
-                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 mb-1">
-                                <Building2 className="h-6 w-6 text-blue-600" />
-                            </div>
-                        )}
-                        
-                        <p className="font-semibold text-[13px] sm:text-sm text-slate-800 line-clamp-2 leading-tight" title={node.name}>
-                            {node.name}
-                        </p>
-                        <p className="text-[10px] sm:text-[11px] text-slate-500 line-clamp-1 font-medium">
-                            {node.subtitle}
-                        </p>
-                        {node.meta && (
-                            <Badge variant="secondary" className="mt-1.5 text-[10px] h-5 bg-slate-100 text-slate-600 border-none font-medium px-2">
-                                {node.meta}
-                            </Badge>
-                        )}
-                    </div>
+        <div className={cn(
+            "relative min-w-[220px] bg-white border rounded-xl p-4 shadow-sm transition-all hover:shadow-md",
+            data.isMatch ? "border-amber-400 ring-2 ring-amber-50" : "border-slate-200"
+        )}>
+            <Handle type="target" position={Position.Top} className="!bg-slate-300 !w-2 !h-2 !border-none" />
+            
+            {data.isHod && <div className="absolute top-0 right-0 p-2"><Shield className="h-4 w-4 text-purple-500" /></div>}
 
-                    {/* Expand/Collapse Toggle Button */}
-                    {hasChildren && (
-                        <button 
-                            onClick={() => toggleNode(node.id)}
-                            className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 h-7 w-7 bg-white border border-slate-300 rounded-full flex items-center justify-center shadow-sm hover:bg-slate-50 hover:text-blue-600 hover:border-blue-300 text-slate-500 transition-colors z-20"
-                            title={isExpanded ? "Collapse" : "Expand"}
-                        >
-                            {isExpanded ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                        </button>
-                    )}
+            <div className="flex items-center gap-3">
+                <div className={cn("h-11 w-11 rounded-full flex items-center justify-center font-bold text-sm", data.bgColor, data.textColor)}>
+                    {data.label.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 overflow-hidden">
+                    <p className="font-semibold text-slate-800 text-sm truncate" title={data.label}>{data.label}</p>
+                    <p className="text-xs text-slate-500 truncate" title={data.role}>{data.role}</p>
                 </div>
             </div>
             
-            {/* Children Sub-tree */}
-            {hasChildren && isExpanded && (
-                <ul>
-                    {node.children.map(child => (
-                        <OrgNode 
-                            key={child.id} 
-                            node={child} 
-                            expandedNodes={expandedNodes} 
-                            toggleNode={toggleNode} 
-                            searchTerm={searchTerm} 
-                        />
-                    ))}
-                </ul>
+            {data.meta && (
+                <div className="mt-3 text-[11px] bg-slate-50 border border-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-medium inline-block">
+                    {data.meta}
+                </div>
             )}
-        </li>
+            
+            {data.hasChildren && (
+                <button 
+                    className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 rounded-full h-7 w-7 flex items-center justify-center hover:bg-slate-50 shadow-sm z-10 text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                    onClick={() => data.toggleNode(id)}
+                    title={data.isExpanded ? "Collapse" : "Expand"}
+                >
+                    {data.isExpanded ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                </button>
+            )}
+
+            <Handle type="source" position={Position.Bottom} className="!bg-slate-300 !w-2 !h-2 !border-none" />
+        </div>
     )
 }
 
-// --- Main Page Component ---
+const nodeTypes = { orgNode: OrgNode }
+
+// --- 2. Layout Algorithm (Dagre) ---
+const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+    const dagreGraph = new dagre.graphlib.Graph()
+    dagreGraph.setDefaultEdgeLabel(() => ({}))
+
+    const nodeWidth = 240
+    const nodeHeight = 120
+
+    dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 100 })
+
+    nodes.forEach((node) => {
+        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight })
+    })
+
+    edges.forEach((edge) => {
+        dagreGraph.setEdge(edge.source, edge.target)
+    })
+
+    dagre.layout(dagreGraph)
+
+    const newNodes = nodes.map((node) => {
+        const nodeWithPosition = dagreGraph.node(node.id)
+        return {
+            ...node,
+            targetPosition: 'top',
+            sourcePosition: 'bottom',
+            position: {
+                x: nodeWithPosition.x - nodeWidth / 2,
+                y: nodeWithPosition.y - nodeHeight / 2,
+            },
+        }
+    })
+
+    return { nodes: newNodes, edges }
+}
+
+// --- 3. Flow Canvas Component ---
+const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm }) => {
+    const { fitView } = useReactFlow()
+    const [nodes, setNodes] = useState([])
+    const [edges, setEdges] = useState([])
+
+    useEffect(() => {
+        if (!treeData) return
+
+        // Flatten the tree into nodes and edges based on expansion state
+        const rawNodes = []
+        const rawEdges = []
+
+        const traverse = (node, parentId = null) => {
+            const isExpanded = expandedNodes[node.id] !== false
+            const hasChildren = node.children && node.children.length > 0
+            const isMatch = searchTerm && node.name.toLowerCase().includes(searchTerm.toLowerCase())
+
+            rawNodes.push({
+                id: node.id,
+                type: 'orgNode',
+                data: {
+                    label: node.name,
+                    role: node.subtitle,
+                    meta: node.meta,
+                    isHod: node.isHod,
+                    bgColor: node.type === 'org' ? 'bg-blue-100' : node.type === 'dept' ? 'bg-slate-100' : node.isHod ? 'bg-purple-100' : node.isManager ? 'bg-indigo-100' : 'bg-slate-100',
+                    textColor: node.type === 'org' ? 'text-blue-700' : node.type === 'dept' ? 'text-slate-600' : node.isHod ? 'text-purple-700' : node.isManager ? 'text-indigo-700' : 'text-slate-600',
+                    isExpanded,
+                    hasChildren,
+                    isMatch,
+                    toggleNode
+                }
+            })
+
+            if (parentId) {
+                rawEdges.push({
+                    id: `e-${parentId}-${node.id}`,
+                    source: parentId,
+                    target: node.id,
+                    type: 'smoothstep',
+                    animated: false,
+                    style: { stroke: '#cbd5e1', strokeWidth: 2 }
+                })
+            }
+
+            if (hasChildren && isExpanded) {
+                node.children.forEach(child => traverse(child, node.id))
+            }
+        }
+
+        traverse(treeData)
+
+        // Apply Dagre layout
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges)
+        setNodes(layoutedNodes)
+        setEdges(layoutedEdges)
+        
+        // Wait for render then fit view
+        setTimeout(() => {
+            fitView({ padding: 0.2, duration: 800 })
+        }, 100)
+    }, [treeData, expandedNodes, searchTerm, toggleNode, fitView])
+
+    return (
+        <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            fitView
+            minZoom={0.1}
+            maxZoom={1.5}
+            defaultEdgeOptions={{ type: 'smoothstep' }}
+            proOptions={{ hideAttribution: true }}
+            className="bg-slate-50"
+        >
+            <Background color="#cbd5e1" gap={24} size={1.5} />
+            <Controls showInteractive={false} className="bg-white border-slate-200 shadow-md rounded-lg overflow-hidden [&>button]:border-slate-100" />
+            <MiniMap 
+                nodeStrokeColor="#cbd5e1" 
+                nodeColor="#f8fafc" 
+                nodeBorderRadius={4}
+                maskColor="rgba(241, 245, 249, 0.7)"
+                className="bg-white border-slate-200 shadow-md rounded-lg overflow-hidden" 
+            />
+            
+            <Panel position="bottom-center" className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-slate-200 text-xs text-slate-500 font-medium">
+                Scroll to Zoom • Click & Drag to Pan
+            </Panel>
+        </ReactFlow>
+    )
+}
+
+// --- 4. Main Page Component ---
 export default function AdminOrgChartPage() {
     const navigate = useNavigate()
     const [currentUser, setCurrentUser] = useState(null)
@@ -229,17 +316,16 @@ export default function AdminOrgChartPage() {
         return root
     }, [chartData])
 
-    const toggleNode = (nodeId) => {
+    const toggleNode = useCallback((nodeId) => {
         setExpandedNodes(prev => ({
             ...prev,
             [nodeId]: prev[nodeId] === false ? true : false
         }))
-    }
+    }, [])
 
     const expandAll = () => setExpandedNodes({})
     
     const collapseAll = () => {
-        // Collect all node IDs
         const collectIds = (node, acc) => {
             if (node.children && node.children.length > 0) {
                 acc[node.id] = false
@@ -249,7 +335,6 @@ export default function AdminOrgChartPage() {
         if (treeData) {
             const newState = {}
             collectIds(treeData, newState)
-            // Keep root expanded by default even in collapse all
             newState['root-org'] = true 
             setExpandedNodes(newState)
         }
@@ -258,16 +343,16 @@ export default function AdminOrgChartPage() {
     if (!currentUser) return null
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-screen">
-            {/* Header Controls (Sticky) */}
+        <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-[calc(100vh-1rem)]">
+            {/* Header Controls */}
             <div className="flex-none bg-white border-b border-slate-200 px-4 sm:px-6 py-4 z-30 shadow-sm">
-                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
                             <Building2 className="h-6 w-6 text-blue-600" />
-                            Organization Chart
+                            Organization Flowchart
                         </h1>
-                        <p className="text-sm text-slate-500 mt-1">Interactive enterprise hierarchy</p>
+                        <p className="text-sm text-slate-500 mt-1">Interactive map of your enterprise hierarchy</p>
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -280,14 +365,11 @@ export default function AdminOrgChartPage() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <Button variant="outline" size="icon" onClick={expandAll} title="Expand All" className="hidden sm:flex">
-                            <Maximize2 className="h-4 w-4 text-slate-600" />
+                        <Button variant="outline" size="sm" onClick={expandAll} className="hidden sm:flex gap-2 text-slate-600">
+                            <Maximize2 className="h-4 w-4" /> Expand All
                         </Button>
-                        <Button variant="outline" size="icon" onClick={collapseAll} title="Collapse All" className="hidden sm:flex">
-                            <Minimize2 className="h-4 w-4 text-slate-600" />
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading} title="Refresh">
-                            <RefreshCw className={`h-4 w-4 text-blue-600 ${isLoading ? 'animate-spin' : ''}`} />
+                        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="gap-2 text-blue-600 hover:bg-blue-50">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
                         </Button>
                         <Button variant="outline" onClick={() => navigate("/admin/employees")} className="gap-2 hidden md:flex">
                             <Users className="h-4 w-4" /> Employees
@@ -304,43 +386,21 @@ export default function AdminOrgChartPage() {
                 </div>
             )}
 
-            {/* Canvas Area (Scrollable Pan/Zoom container) */}
-            <div className="flex-1 overflow-auto bg-slate-50/50 relative dot-pattern">
-                {/* Dot grid background using standard CSS gradient */}
-                <div 
-                    className="absolute inset-0 pointer-events-none" 
-                    style={{
-                        backgroundImage: 'radial-gradient(#e2e8f0 1.5px, transparent 1.5px)',
-                        backgroundSize: '24px 24px'
-                    }}
-                />
-
+            {/* React Flow Canvas */}
+            <div className="flex-1 w-full h-full relative">
                 {isLoading ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-10">
                         <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
                     </div>
-                ) : treeData && treeData.children.length === 0 ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <Building2 className="h-16 w-16 text-slate-200 mb-4" />
-                        <p className="text-slate-500 text-lg font-medium">No departments yet</p>
-                        <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => navigate("/admin/employees")}>
-                            <Users className="h-4 w-4 mr-2" /> Go to Employees
-                        </Button>
-                    </div>
                 ) : treeData ? (
-                    <div className="min-w-max min-h-max p-8 sm:p-16 flex justify-center pb-32">
-                        {/* THE TREE ROOT */}
-                        <div className="org-tree">
-                            <ul>
-                                <OrgNode 
-                                    node={treeData} 
-                                    expandedNodes={expandedNodes} 
-                                    toggleNode={toggleNode} 
-                                    searchTerm={searchTerm} 
-                                />
-                            </ul>
-                        </div>
-                    </div>
+                    <ReactFlowProvider>
+                        <OrgChartFlow 
+                            treeData={treeData} 
+                            expandedNodes={expandedNodes} 
+                            toggleNode={toggleNode} 
+                            searchTerm={searchTerm} 
+                        />
+                    </ReactFlowProvider>
                 ) : null}
             </div>
         </div>
