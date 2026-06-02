@@ -10,6 +10,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, '.'),
     },
   },
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
   server: {
     port: 5173,
     host: true, // Allows the server to be accessible over the network (Tailscale/Ngrok)

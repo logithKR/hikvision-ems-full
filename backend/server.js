@@ -11,6 +11,18 @@ const { Server } = require('socket.io');
 const path = require('path');
 require('dotenv').config();
 
+// ========================================
+// PRODUCTION LOGGING OVERRIDES
+// ========================================
+// Disable all non-error console outputs in production to prevent information leaks
+if (process.env.NODE_ENV === 'production') {
+  console.log = function () {};
+  console.info = function () {};
+  console.debug = function () {};
+  console.trace = function () {};
+  // We keep console.error and console.warn active to track actual issues
+}
+
 // Import container (initializes all services and repositories)
 const container = require('./container');
 
