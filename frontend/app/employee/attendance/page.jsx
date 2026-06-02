@@ -102,7 +102,7 @@ const getAccurateLocation = async (onStatusUpdate) => {
   updateStatus('Acquiring GPS location...')
   const gpsResult = await getPositionWithOptions({
     enableHighAccuracy: true,
-    timeout: 5000,
+    timeout: 15000, // Increased to 15s to allow user to tap "Allow" on mobile prompt
     maximumAge: 0
   })
 
@@ -115,7 +115,7 @@ const getAccurateLocation = async (onStatusUpdate) => {
   updateStatus('GPS unavailable, trying network location...')
   const networkResult = await getPositionWithOptions({
     enableHighAccuracy: false,
-    timeout: 4000,
+    timeout: 10000, // Increased to 10s
     maximumAge: 60000 // accept cached position up to 1 min old
   })
 

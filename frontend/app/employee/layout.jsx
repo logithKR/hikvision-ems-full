@@ -106,7 +106,7 @@ export default function EmployeeLayout({ children }) {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-            {/* Mobile Header */}
+            {/* Mobile Header (Simplified) */}
             <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 flex items-center justify-between shadow-md">
                 <div className="flex items-center gap-2.5">
                     <div className="p-1.5 bg-white/20 rounded-lg">
@@ -114,33 +114,48 @@ export default function EmployeeLayout({ children }) {
                     </div>
                     <span className="font-semibold text-white text-sm tracking-wide">Employee Portal</span>
                 </div>
+                
+                {/* Mobile Profile/Logout Icon instead of hamburger */}
                 <Button
                     variant="ghost"
                     size="icon"
                     className="text-white hover:bg-white/10 rounded-xl h-9 w-9"
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    onClick={handleLogout}
+                    title="Logout"
                 >
-                    {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                    <LogOut className="h-5 w-5" />
                 </Button>
             </div>
 
-            {/* Sidebar Overlay (Mobile) */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
-
-            {/* Sidebar */}
+            {/* Mobile Bottom Navigation Bar (Elite SaaS Style) */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around pb-safe px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                {navLinks.slice(0, 5).map((link) => {
+                    const Icon = link.icon;
+                    const active = isActive(link.href);
+                    return (
+                        <Link
+                            key={link.href}
+                            to={link.href}
+                            className={cn(
+                                "flex flex-col items-center justify-center w-16 h-12 gap-1 rounded-xl transition-all",
+                                active 
+                                    ? "text-blue-600 dark:text-blue-400" 
+                                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            )}
+                        >
+                            <Icon className={cn("h-5 w-5", active && "drop-shadow-sm")} strokeWidth={active ? 2.5 : 2} />
+                            <span className="text-[10px] font-medium truncate w-full text-center">{link.label}</span>
+                        </Link>
+                    )
+                })}
+            </nav>
+            {/* Sidebar (Desktop Only) */}
             <aside
                 className={cn(
-                    "fixed top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-slate-800 border-r border-sidebar-border transition-transform duration-300 ease-in-out shadow-lg lg:shadow-none",
-                    "lg:translate-x-0",
-                    sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                    "hidden lg:flex fixed top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-slate-800 border-r border-sidebar-border transition-transform duration-300 ease-in-out"
                 )}
             >
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full w-full">
                     {/* Logo */}
                     <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
                         <Link to="/employee/dashboard" className="flex items-center gap-3">
@@ -212,7 +227,7 @@ export default function EmployeeLayout({ children }) {
             </aside>
 
             {/* Main Content */}
-            <main className="lg:pl-64 pt-16 lg:pt-0 min-h-screen transition-all bg-slate-50 dark:bg-slate-950">
+            <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0 min-h-screen transition-all bg-slate-50 dark:bg-slate-950">
                 <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
                     {children || <Outlet />}
                 </div>

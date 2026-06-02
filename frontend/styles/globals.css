@@ -123,3 +123,107 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Utilities for Elite Mobile UI */
+@layer utilities {
+  .mobile-table-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+  }
+  .mobile-table-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+}
+
+/* ==================================================
+   Elite Org Chart Vertical Tree (Cross-Browser)
+   ================================================== */
+.org-tree ul {
+  display: flex;
+  justify-content: center;
+  padding-top: 24px;
+  position: relative;
+  transition: all 0.3s ease;
+  margin: 0;
+  padding-left: 0;
+}
+
+.org-tree li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  list-style-type: none;
+  position: relative;
+  padding: 24px 8px 0 8px;
+  transition: all 0.3s ease;
+}
+
+/* Connecting vertical lines */
+.org-tree ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  border-left: 2px solid #cbd5e1; /* slate-300 */
+  width: 0;
+  height: 24px;
+  transform: translateX(-50%);
+}
+
+/* Top horizontal lines for children */
+.org-tree li::before, .org-tree li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 50%;
+  border-top: 2px solid #cbd5e1;
+  width: 50%;
+  height: 24px;
+}
+.org-tree li::after {
+  right: auto;
+  left: 50%;
+  border-left: 2px solid #cbd5e1;
+}
+
+/* Cleanup lines for single children */
+.org-tree li:only-child::after, .org-tree li:only-child::before {
+  display: none;
+}
+.org-tree li:only-child {
+  padding-top: 0;
+}
+.org-tree ul:empty {
+  display: none;
+}
+
+/* Edge cases for first and last children */
+.org-tree li:first-child::before, .org-tree li:last-child::after {
+  border: 0 none;
+}
+.org-tree li:last-child::before {
+  border-right: 2px solid #cbd5e1;
+  border-radius: 0 6px 0 0;
+}
+.org-tree li:first-child::after {
+  border-radius: 6px 0 0 0;
+}
+
+/* Root UL exception */
+.org-tree > ul {
+  padding-top: 0;
+}
+.org-tree > ul::before {
+  display: none;
+}
+
+/* Card Interaction Design */
+.org-card-container {
+  position: relative;
+  z-index: 10;
+}
