@@ -103,6 +103,14 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/system-admin', systemAdminRoutes);
+
+// Fallbacks for aggressive reverse proxies (like Nginx with trailing slash)
+app.use('/auth', authRoutes);
+app.use('/admin', adminRoutes);
+app.use('/attendance', attendanceRoutes);
+app.use('/leave', leaveRoutes);
+app.use('/team', teamRoutes);
+app.use('/system-admin', systemAdminRoutes);
 // HIKVISION TEMPORARILY DISABLED
 // This route was used for Hikvision attendance device callbacks.
 // Re-enable if Hikvision integration is needed again.
