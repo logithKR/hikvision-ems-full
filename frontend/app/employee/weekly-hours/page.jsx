@@ -7,6 +7,23 @@ import { Calendar, RefreshCw } from"lucide-react"
 import { safeRedirect } from"@/lib/redirectUtils"
 import { getValidIdToken } from"@/lib/firebaseClient"
 
+const formatDecimalHours = (decimalHours) => {
+ if (!decimalHours || decimalHours <= 0) return '0h';
+ if (decimalHours < 0.016) return '< 1m';
+ const hrs = Math.floor(decimalHours);
+ const mins = Math.floor((decimalHours - hrs) * 60);
+ if (hrs === 0) return `${mins}m`;
+ return `${hrs}h ${mins}m`;
+ };
+ 
+ const formatMins = (totalMins) => {
+ if (!totalMins || totalMins <= 0) return '0h';
+ const hrs = Math.floor(totalMins / 60);
+ const mins = Math.floor(totalMins % 60);
+ if (hrs === 0) return `${mins}m`;
+ return `${hrs}h ${mins}m`;
+ };
+
 const fetchWeeklyHours = async () => {
  const token = await getValidIdToken()
  if (!token) throw new Error("Not authenticated")
@@ -41,9 +58,9 @@ export default function WeeklyHoursPage() {
  }
  })
  const totals = useMemo(() => ({
- total: data?.stats?.totalHours || 0,
- longest: data?.stats?.longestDay || 0,
- average: data?.stats?.averagePerDay || 0
+ total: data?.stats?.totalMinutes ? formatMins(data.stats.totalMinutes) : `${data?.stats?.totalHours || 0}h`,
+ longest: data?.stats?.longestMinutes ? formatMins(data.stats.longestMinutes) : (data?.stats?.longestDay ? `${data.stats.longestDay}h` : '0h'),
+ average: (data?.stats?.totalMinutes && data?.stats?.daysWorked > 0) ? formatMins(data.stats.totalMinutes / data.stats.daysWorked) : `${data?.stats?.averagePerDay || 0}h`
  }), [data])
 
  if (queryError?.message ==="SESSION_EXPIRED") {
@@ -81,7 +98,7 @@ export default function WeeklyHoursPage() {
  <CartesianGrid strokeDasharray="3 3" />
  <XAxis dataKey="day" />
  <YAxis />
- <Tooltip />
+ <Tooltip formatter={(value) => [formatDecimalHours(value), "Time Logged"]} />
  <Bar dataKey="hours" fill="#3b82f6" />
  </BarChart>
  </ResponsiveContainer>
