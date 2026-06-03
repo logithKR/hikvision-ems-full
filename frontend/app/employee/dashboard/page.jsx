@@ -191,7 +191,7 @@ export default function EmployeeDashboardPage() {
  }
 
  return (
- <div className="space-y-6 pb-16 bg-background/50 min-h-screen">
+ <div className="space-y-6 pb-16">
 
  {/* ══ HERO BANNER ══════════════════════════════════════════════════════════ */}
  <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl shadow-xl shadow-blue-900/20 overflow-hidden relative">

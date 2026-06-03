@@ -238,13 +238,6 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
  >
  <Background color="#64748b" gap={24} size={1.5} />
  <Controls position="top-right" showInteractive={false} className="bg-card border-border shadow-md rounded-lg overflow-hidden [&>button]:border-border mt-2 mr-2" />
- <MiniMap 
- nodeStrokeColor="#cbd5e1" 
- nodeColor="#f1f5f9" 
- nodeBorderRadius={8}
- maskColor="rgba(241, 245, 249, 0.6)"
- className="hidden sm:block bg-card border-border shadow-lg rounded-xl overflow-hidden" 
- />
  
  <Panel position="bottom-center" className="hidden sm:flex bg-card/90 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-border text-xs text-slate-600 font-medium items-center gap-3">
  <span><kbd className="bg-secondary border border-border rounded px-1.5 py-0.5 font-sans mr-1">Scroll</kbd> to Pan</span>
