@@ -15,6 +15,7 @@ import {
  DialogFooter,
  DialogHeader,
  DialogTitle,
+DialogBody,
 } from"@/components/ui/dialog"
 import {
  Building2, Users, CheckCircle, XCircle, Search,

@@ -60,12 +60,15 @@ const processRecords = (data) => {
 /**
  * Multi-strategy location acquisition with automatic fallbacks.
  * 
+ * IMPORTANT: We always attempt navigator.geolocation.getCurrentPosition()
+ * because that is the ONLY way to trigger the browser's permission prompt.
+ * The Permissions API (navigator.permissions.query) only reads the current
+ * state — it does NOT trigger a prompt.
+ * 
  * Strategy order:
  * 1. GPS (high accuracy, enableHighAccuracy: true) — most precise (~5-15m)
  * 2. Network/WiFi (low accuracy fallback) — moderate precision (~20-100m)
- * 3. IP Geolocation API — coarse fallback (~1-50km)
- * 
- * Also handles permission prompts and provides source info.
+ * 3. IP Geolocation API — coarse fallback (~1-50km), ONLY if user denied
  * 
  * @param {Function} onStatusUpdate - callback for real-time status updates
  * @returns {Promise<{lat, lng, accuracy, source, timestamp} | null>}
@@ -76,33 +79,17 @@ const getAccurateLocation = async (onStatusUpdate) => {
  if (onStatusUpdate) onStatusUpdate(msg)
  }
 
- // Check if Geolocation API is available
+ // Check if Geolocation API is available at all
  if (!navigator.geolocation) {
- updateStatus('Geolocation not supported, trying IP fallback...')
+ updateStatus('Geolocation not supported by this browser, using IP location...')
  return await getIPLocation(updateStatus)
  }
 
- // Step 1: Check and request permission
- if (navigator.permissions) {
- try {
- const permission = await navigator.permissions.query({ name: 'geolocation' })
- if (permission.state === 'denied') {
- updateStatus('Location permission denied. Please enable location in browser settings.')
- return await getIPLocation(updateStatus)
- }
- if (permission.state === 'prompt') {
- updateStatus('Requesting location permission...')
- }
- } catch (e) {
- // permissions API not supported, proceed anyway
- }
- }
-
- // Step 2: Try GPS (high accuracy)
- updateStatus('Acquiring GPS location...')
+ // Step 1: Always try GPS first (this WILL trigger the permission prompt if needed)
+ updateStatus('Requesting location access — please allow when prompted...')
  const gpsResult = await getPositionWithOptions({
  enableHighAccuracy: true,
- timeout: 15000, // Increased to 15s to allow user to tap"Allow" on mobile prompt
+ timeout: 20000, // 20s — gives user plenty of time to tap "Allow" on mobile
  maximumAge: 0
  })
 
@@ -111,11 +98,12 @@ const getAccurateLocation = async (onStatusUpdate) => {
  return { ...gpsResult, source: 'gps' }
  }
 
- // Step 3: Fallback to network/WiFi (low accuracy)
- updateStatus('GPS unavailable, trying network location...')
+ // If GPS failed, check WHY before falling back
+ // Step 2: Try network/WiFi (lower accuracy, but still uses real hardware)
+ updateStatus('GPS signal weak, trying network location...')
  const networkResult = await getPositionWithOptions({
  enableHighAccuracy: false,
- timeout: 10000, // Increased to 10s
+ timeout: 10000,
  maximumAge: 60000 // accept cached position up to 1 min old
  })
 
@@ -124,31 +112,49 @@ const getAccurateLocation = async (onStatusUpdate) => {
  return { ...networkResult, source: 'network' }
  }
 
+ // Step 3: Check if the reason we failed is because the user denied permission
+ let permissionDenied = false
+ if (navigator.permissions) {
+ try {
+  const perm = await navigator.permissions.query({ name: 'geolocation' })
+  permissionDenied = perm.state === 'denied'
+ } catch (_) {
+  // permissions API not supported for geolocation on this browser (e.g. Safari)
+ }
+ }
+
+ if (permissionDenied) {
+ updateStatus('Location permission was denied. Using approximate IP location. For accurate check-in, please enable location in your browser settings.')
+ } else {
+ updateStatus('Could not get device location (GPS/network timed out). Using IP location as fallback...')
+ }
+
  // Step 4: Final fallback — IP-based geolocation
- updateStatus('Network location unavailable, trying IP geolocation...')
  return await getIPLocation(updateStatus)
 }
 
 /**
  * Get position using the Geolocation API with specified options.
+ * This is the function that actually triggers the browser's "Allow location?" prompt.
  * @returns {Promise<{lat, lng, accuracy, timestamp} | null>}
  */
 const getPositionWithOptions = (options) => {
  return new Promise((resolve) => {
  navigator.geolocation.getCurrentPosition(
- (position) => {
- resolve({
- lat: position.coords.latitude,
- lng: position.coords.longitude,
- accuracy: position.coords.accuracy,
- timestamp: position.timestamp
- })
- },
- (err) => {
- console.warn(`Geolocation error (highAccuracy=${options.enableHighAccuracy}):`, err.message)
- resolve(null)
- },
- options
+  (position) => {
+  resolve({
+   lat: position.coords.latitude,
+   lng: position.coords.longitude,
+   accuracy: position.coords.accuracy,
+   timestamp: position.timestamp
+  })
+  },
+  (err) => {
+  console.warn(`Geolocation error (highAccuracy=${options.enableHighAccuracy}):`, err.code, err.message)
+  // Error codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+  resolve(null)
+  },
+  options
  )
  })
 }

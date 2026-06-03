@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from"@/
 import { Skeleton } from"@/components/ui/skeleton"
 import {
  Dialog, DialogContent, DialogDescription, DialogFooter,
- DialogHeader, DialogTitle, DialogTrigger
+ DialogHeader, DialogTitle, DialogTrigger, DialogBody
 } from"@/components/ui/dialog"
 import {
  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,

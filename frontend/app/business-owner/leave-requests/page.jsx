@@ -35,6 +35,7 @@ import {
  DialogHeader,
  DialogTitle,
  DialogTrigger,
+ DialogBody,
 } from"@/components/ui/dialog"
 import { Label } from"@/components/ui/label"
 import { Textarea } from"@/components/ui/textarea"
