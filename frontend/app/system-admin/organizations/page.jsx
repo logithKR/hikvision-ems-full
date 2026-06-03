@@ -438,7 +438,7 @@ export default function SystemAdminOrganizationsPage() {
 
             {/* Details Modal */}
             <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl ">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Building2 className="h-5 w-5 text-blue-500" />
@@ -448,6 +448,7 @@ export default function SystemAdminOrganizationsPage() {
                             Organization details and statistics
                         </DialogDescription>
                     </DialogHeader>
+          <DialogBody>
                     {selectedOrg && (
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -518,7 +519,8 @@ export default function SystemAdminOrganizationsPage() {
                             </div>
                         </div>
                     )}
-                    <DialogFooter>
+                    </DialogBody>
+          <DialogFooter>
                         <Button variant="outline" onClick={() => setShowDetailsModal(false)}>Close</Button>
                     </DialogFooter>
                 </DialogContent>
@@ -526,7 +528,7 @@ export default function SystemAdminOrganizationsPage() {
 
             {/* Limits Modal */}
             <Dialog open={showLimitsModal} onOpenChange={setShowLimitsModal}>
-                <DialogContent>
+                <DialogContent className="">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Settings className="h-5 w-5 text-blue-500" />
@@ -536,6 +538,7 @@ export default function SystemAdminOrganizationsPage() {
                             Update quota limits for {selectedOrg?.name}
                         </DialogDescription>
                     </DialogHeader>
+          <DialogBody>
                     <div className="space-y-4">
                         <div>
                             <Label>Max Business Owners</Label>
@@ -568,7 +571,8 @@ export default function SystemAdminOrganizationsPage() {
                             />
                         </div>
                     </div>
-                    <DialogFooter>
+                    </DialogBody>
+          <DialogFooter>
                         <Button variant="outline" onClick={() => setShowLimitsModal(false)}>Cancel</Button>
                         <Button onClick={saveLimits} disabled={actionLoading} className="bg-blue-500 hover:bg-blue-600">
                             {actionLoading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -580,7 +584,7 @@ export default function SystemAdminOrganizationsPage() {
 
             {/* Toggle Status Modal */}
             <Dialog open={showToggleModal} onOpenChange={setShowToggleModal}>
-                <DialogContent>
+                <DialogContent className="">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Power className={`h-5 w-5 ${selectedOrg?.isActive ? 'text-red-500' : 'text-green-500'}`} />
@@ -593,7 +597,9 @@ export default function SystemAdminOrganizationsPage() {
                             }
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter>
+          <DialogBody>
+                    </DialogBody>
+          <DialogFooter>
                         <Button variant="outline" onClick={() => setShowToggleModal(false)}>Cancel</Button>
                         <Button
                             onClick={toggleOrgStatus}

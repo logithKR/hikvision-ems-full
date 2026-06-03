@@ -309,7 +309,7 @@ export default function TeamLeavesPage() {
 
             {/* Action Dialog */}
             <Dialog open={actionDialog.open} onOpenChange={(open) => !open && setActionDialog({ open: false, type: null, leave: null })}>
-                <DialogContent>
+                <DialogContent className="">
                     <DialogHeader>
                         <DialogTitle>
                             {actionDialog.type === 'approve' ? 'Approve Request' : 'Reject Request'}
@@ -318,6 +318,7 @@ export default function TeamLeavesPage() {
                             Review {actionDialog.leave?.userName}'s request for {actionDialog.leave?.days} days.
                         </DialogDescription>
                     </DialogHeader>
+          <DialogBody>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label>Comments</Label>
@@ -328,7 +329,8 @@ export default function TeamLeavesPage() {
                             />
                         </div>
                     </div>
-                    <DialogFooter>
+                    </DialogBody>
+          <DialogFooter>
                         <Button variant="outline" onClick={() => setActionDialog({ open: false, type: null, leave: null })}>Cancel</Button>
                         <Button
                             className={actionDialog.type === 'approve' ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}

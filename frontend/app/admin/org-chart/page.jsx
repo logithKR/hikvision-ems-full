@@ -237,16 +237,16 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
             className="bg-[#f8fafc]"
         >
             <Background color="#cbd5e1" gap={24} size={1.5} />
-            <Controls showInteractive={false} className="bg-white border-slate-200 shadow-md rounded-lg overflow-hidden [&>button]:border-slate-100" />
+            <Controls position="top-right" showInteractive={false} className="bg-white border-slate-200 shadow-md rounded-lg overflow-hidden [&>button]:border-slate-100 mt-2 mr-2" />
             <MiniMap 
                 nodeStrokeColor="#cbd5e1" 
                 nodeColor="#f1f5f9" 
                 nodeBorderRadius={8}
                 maskColor="rgba(241, 245, 249, 0.6)"
-                className="bg-white border-slate-200 shadow-lg rounded-xl overflow-hidden" 
+                className="hidden sm:block bg-white border-slate-200 shadow-lg rounded-xl overflow-hidden" 
             />
             
-            <Panel position="bottom-center" className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-slate-200 text-xs text-slate-600 font-medium flex items-center gap-3">
+            <Panel position="bottom-center" className="hidden sm:flex bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-slate-200 text-xs text-slate-600 font-medium items-center gap-3">
                 <span><kbd className="bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 font-sans mr-1">Scroll</kbd> to Pan</span>
                 <span className="w-1 h-1 rounded-full bg-slate-300" />
                 <span><kbd className="bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 font-sans mr-1">Ctrl</kbd> + <kbd className="bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 font-sans">Scroll</kbd> to Zoom</span>
@@ -465,9 +465,9 @@ export default function AdminOrgChartPage() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-[calc(100vh-1rem)] overflow-hidden relative">
+        <div className="flex flex-col h-[calc(100vh-11rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] overflow-hidden relative rounded-xl shadow-sm border border-slate-200 bg-white">
             {/* Header Controls */}
-            <div className="flex-none bg-white border-b border-slate-200 px-4 sm:px-6 py-4 z-30 shadow-sm relative">
+            <div className="flex-none bg-white border-b border-slate-200 px-4 sm:px-6 py-4 z-30 relative">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -477,25 +477,27 @@ export default function AdminOrgChartPage() {
                         <p className="text-sm text-slate-500 mt-1">Interactive enterprise hierarchy</p>
                     </div>
                     
-                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:w-64 min-w-[200px]">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-64">
                             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                             <Input 
                                 placeholder="Find user or department..." 
-                                className="pl-9 bg-slate-50 border-slate-200 rounded-full focus-visible:ring-indigo-500"
+                                className="pl-9 bg-slate-50 border-slate-200 rounded-full focus-visible:ring-indigo-500 w-full"
                                 value={searchTerm}
                                 onChange={handleSearchChange}
                             />
                         </div>
-                        <Button variant="outline" size="sm" onClick={expandAll} className="hidden sm:flex gap-2 text-slate-600 rounded-full">
-                            <Maximize2 className="h-4 w-4" /> Expand All
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="gap-2 text-indigo-600 hover:bg-indigo-50 rounded-full">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
-                        </Button>
-                        <Button onClick={() => navigate("/admin/employees")} className="gap-2 hidden md:flex rounded-full bg-indigo-600 hover:bg-indigo-700">
-                            <Users className="h-4 w-4" /> View List
-                        </Button>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Button variant="outline" size="sm" onClick={expandAll} className="flex-1 sm:flex-none gap-2 text-slate-600 rounded-full">
+                                <Maximize2 className="h-4 w-4 shrink-0" /> <span className="hidden sm:inline">Expand All</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="flex-1 sm:flex-none gap-2 text-indigo-600 hover:bg-indigo-50 rounded-full">
+                                <RefreshCw className={cn("h-4 w-4 shrink-0", isLoading && "animate-spin")} /> <span className="hidden sm:inline">Refresh</span>
+                            </Button>
+                            <Button onClick={() => navigate("/admin/employees")} className="flex-1 sm:flex-none gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                                <Users className="h-4 w-4 shrink-0" /> <span className="hidden sm:inline">View List</span>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -508,8 +510,7 @@ export default function AdminOrgChartPage() {
                 </div>
             )}
 
-            {/* React Flow Canvas */}
-            <div className="flex-1 w-full h-full relative bg-[#f8fafc]">
+            <div className="flex-1 w-full h-full relative bg-[#f8fafc] overflow-hidden">
                 {isLoading ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-10">
                         <RefreshCw className="h-8 w-8 text-indigo-600 animate-spin" />
@@ -526,15 +527,14 @@ export default function AdminOrgChartPage() {
                         />
                     </ReactFlowProvider>
                 ) : null}
-            </div>
 
-            {/* Sliding Side Panel for Rich Data */}
-            <div 
-                className={cn(
-                    "absolute top-0 right-0 h-full w-full sm:w-[400px] bg-white shadow-2xl border-l border-slate-200 transform transition-transform duration-300 ease-in-out z-50 flex flex-col",
-                    selectedNode ? "translate-x-0" : "translate-x-full"
-                )}
-            >
+                {/* Sliding Side Panel for Rich Data (Now bounded inside Canvas area) */}
+                <div 
+                    className={cn(
+                        "absolute top-0 right-0 h-full w-full sm:w-[400px] bg-white shadow-2xl border-l border-slate-200 transform transition-transform duration-300 ease-in-out z-50 flex flex-col",
+                        selectedNode ? "translate-x-0" : "translate-x-full"
+                    )}
+                >
                 {selectedNode && (
                     <>
                         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -641,6 +641,7 @@ export default function AdminOrgChartPage() {
                         </div>
                     </>
                 )}
+            </div>
             </div>
         </div>
     )

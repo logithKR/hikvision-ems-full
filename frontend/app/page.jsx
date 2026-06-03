@@ -56,9 +56,6 @@ export default function LandingPage() {
             <Button size="lg" className="w-full sm:w-auto h-12 sm:h-14 px-8 text-base sm:text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20" onClick={() => safeRedirect(navigate, "/login")}>
               Start for Free
             </Button>
-            <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 sm:h-14 px-8 text-base sm:text-lg border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900">
-              Learn More
-            </Button>
           </div>
         </div>
       </div>

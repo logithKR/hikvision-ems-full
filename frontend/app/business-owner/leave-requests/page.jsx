@@ -344,7 +344,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
 
       {/* Action Dialog */}
       <Dialog open={actionDialog.open} onOpenChange={(open) => !open && setActionDialog({ open: false, type: null, leave: null })}>
-        <DialogContent>
+        <DialogContent className="">
           <DialogHeader>
             <DialogTitle>
               {actionDialog.type === 'approve' ? 'Approve Leave Request' : 'Reject Leave Request'}
@@ -353,6 +353,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
               {actionDialog.leave?.userName} - {actionDialog.leave?.days} days ({actionDialog.leave?.leaveType})
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Comments (Optional)</Label>
@@ -363,6 +364,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
               />
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog({ open: false, type: null, leave: null })}>Cancel</Button>
             <Button

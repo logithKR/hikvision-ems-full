@@ -938,6 +938,7 @@ export default function AdminEmployeesPage() {
               Update details for {editingEmployee?.name || "employee"}.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name" className="text-sm font-medium text-slate-700">Name</Label>
@@ -986,6 +987,7 @@ export default function AdminEmployeesPage() {
               />
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-slate-200">
               Cancel
@@ -1014,6 +1016,7 @@ export default function AdminEmployeesPage() {
               Employee Details
             </DialogTitle>
           </DialogHeader>
+          <DialogBody>
           {viewingEmployee && (
             <div className="space-y-4 py-2">
               <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
@@ -1117,6 +1120,7 @@ export default function AdminEmployeesPage() {
               </SelectContent>
             </Select>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setManagerDialogOpen(false)} className="border-slate-200">
               Cancel
@@ -1148,6 +1152,7 @@ export default function AdminEmployeesPage() {
               Create a new employee account. They will receive login credentials.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
 
           {createMutation.isError && (
             <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1230,6 +1235,7 @@ export default function AdminEmployeesPage() {
               />
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)} className="border-slate-200">
               Cancel
@@ -1260,6 +1266,7 @@ export default function AdminEmployeesPage() {
               Add a new department to your organization.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
 
           {createDeptMutation.isError && (
             <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1304,6 +1311,7 @@ export default function AdminEmployeesPage() {
               />
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeptDialogOpen(false)} className="border-slate-200">Cancel</Button>
             <Button
@@ -1333,6 +1341,7 @@ export default function AdminEmployeesPage() {
               Create a new {deptMemberType} for <strong>{selectedDeptForMember?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
 
           {createDeptMemberMutation.isError && (
             <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1375,6 +1384,7 @@ export default function AdminEmployeesPage() {
               </div>
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeptMemberDialogOpen(false)} className="border-slate-200">Cancel</Button>
             <Button

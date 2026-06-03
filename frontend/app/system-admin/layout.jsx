@@ -93,7 +93,7 @@ export default function SystemAdminLayout({ children }) {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
             {/* Mobile Header (Simplified) */}
             <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-3 flex items-center justify-between shadow-md">
                 <div className="flex items-center gap-2.5">
@@ -215,7 +215,7 @@ export default function SystemAdminLayout({ children }) {
             </aside>
 
             {/* Main Content */}
-            <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0 min-h-screen transition-all bg-slate-50 dark:bg-slate-950">
+            <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0 min-h-screen transition-all bg-slate-100 dark:bg-slate-950">
                 <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
                     {children || <Outlet />}
                 </div>

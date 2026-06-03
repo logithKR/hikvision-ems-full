@@ -109,9 +109,9 @@ export default function AdminLayout({ children }) {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
             {/* Mobile Header (Simplified) */}
-            <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 flex items-center justify-between shadow-md">
+            <div className="lg:hidden fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 flex items-center justify-between shadow-md">
                 <div className="flex items-center gap-2.5">
                     <div className="p-1.5 bg-white/20 rounded-lg">
                         <Building2 className="h-5 w-5 text-white" />
@@ -132,7 +132,7 @@ export default function AdminLayout({ children }) {
             </div>
 
             {/* Mobile Bottom Navigation Bar (Elite SaaS Style) */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around pb-safe px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around pb-safe px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 {navLinks.slice(0, 5).map((link) => {
                     const Icon = link.icon;
                     const active = isActive(link.href);
@@ -157,7 +157,7 @@ export default function AdminLayout({ children }) {
             {/* Sidebar (Desktop Only) */}
             <aside
                 className={cn(
-                    "hidden lg:flex fixed top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-slate-800 border-r border-sidebar-border transition-transform duration-300 ease-in-out"
+                    "hidden lg:flex fixed top-0 left-0 z-[100] h-screen w-64 bg-white dark:bg-slate-800 border-r border-sidebar-border transition-transform duration-300 ease-in-out"
                 )}
             >
                 <div className="flex flex-col h-full w-full">
@@ -231,7 +231,7 @@ export default function AdminLayout({ children }) {
             </aside>
 
             {/* Main Content */}
-            <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0 min-h-screen transition-all bg-slate-50 dark:bg-slate-950">
+            <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0 min-h-screen transition-all bg-slate-100 dark:bg-slate-950">
                 <div className="p-4 md:p-6 lg:p-8 space-y-6">
                     {children || <Outlet />}
                 </div>

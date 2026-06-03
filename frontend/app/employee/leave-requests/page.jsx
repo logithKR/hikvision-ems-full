@@ -336,12 +336,12 @@ export default function EmployeeLeavePage() {
                                     />
                                 </div>
 
-                                <div className="flex gap-4 pt-4">
-                                    <Button type="button" variant="outline" onClick={() => setActiveTab('my-requests')}>
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto sm:min-w-[150px]">
+                                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                                    <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto sm:min-w-[150px] order-1 sm:order-2">
                                         {submitting ? "Submitting..." : "Submit Request"}
+                                    </Button>
+                                    <Button type="button" variant="outline" onClick={() => setActiveTab('my-requests')} className="w-full sm:w-auto order-2 sm:order-1">
+                                        Cancel
                                     </Button>
                                 </div>
                             </form>

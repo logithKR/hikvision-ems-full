@@ -1097,7 +1097,7 @@ export default function AdminEmployeesPage() {
 
       {/* ── Edit Employee Dialog ──────────────────────── */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md ">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5 text-blue-600" />
@@ -1107,6 +1107,7 @@ export default function AdminEmployeesPage() {
               Update details for {editingEmployee?.name || "employee"}.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name" className="text-sm font-medium text-slate-700">Name</Label>
@@ -1197,6 +1198,7 @@ export default function AdminEmployeesPage() {
               <p className="text-xs text-red-700">{updateMutation.error.message}</p>
             </div>
           )}
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-slate-200">
               Cancel
@@ -1218,13 +1220,14 @@ export default function AdminEmployeesPage() {
 
       {/* ── View Details Dialog ──────────────────────── */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg ">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-blue-600" />
               Employee Details
             </DialogTitle>
           </DialogHeader>
+          <DialogBody>
           {viewingEmployee && (
             <div className="space-y-4 py-2">
               <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
@@ -1296,7 +1299,7 @@ export default function AdminEmployeesPage() {
 
       {/* ── Assign Manager Dialog ────────────────────── */}
       <Dialog open={managerDialogOpen} onOpenChange={setManagerDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md ">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-blue-600" />
@@ -1329,6 +1332,7 @@ export default function AdminEmployeesPage() {
               </SelectContent>
             </Select>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setManagerDialogOpen(false)} className="border-slate-200">
               Cancel
@@ -1350,7 +1354,7 @@ export default function AdminEmployeesPage() {
 
       {/* ── Create Employee Dialog ───────────────────── */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg ">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-blue-600" />
@@ -1360,6 +1364,7 @@ export default function AdminEmployeesPage() {
               Create a new employee account. They will receive login credentials.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
 
           {createMutation.isError && (
             <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1527,6 +1532,7 @@ export default function AdminEmployeesPage() {
               <p className="text-[10px] text-slate-400">Enter the Employee No. from the Hikvision device to link attendance automatically. Leave blank if not using a device.</p>
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)} className="border-slate-200">
               Cancel
@@ -1547,7 +1553,7 @@ export default function AdminEmployeesPage() {
       </Dialog>
       {/* ── Create Department Dialog ───────────────── */}
       <Dialog open={deptDialogOpen} onOpenChange={setDeptDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md ">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-purple-600" />
@@ -1557,6 +1563,7 @@ export default function AdminEmployeesPage() {
               Add a new department to your organization.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
 
           {createDeptMutation.isError && (
             <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1601,6 +1608,7 @@ export default function AdminEmployeesPage() {
               />
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeptDialogOpen(false)} className="border-slate-200">Cancel</Button>
             <Button
@@ -1620,7 +1628,7 @@ export default function AdminEmployeesPage() {
 
       {/* ── Add Dept Member (HOD/Manager/Employee) Dialog ── */}
       <Dialog open={deptMemberDialogOpen} onOpenChange={setDeptMemberDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg ">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {deptMemberType === 'hod' ? <Shield className="h-5 w-5 text-purple-600" /> : <UserPlus className="h-5 w-5 text-blue-600" />}
@@ -1630,6 +1638,7 @@ export default function AdminEmployeesPage() {
               Create a new {deptMemberType} for <strong>{selectedDeptForMember?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
 
           {createDeptMemberMutation.isError && (
             <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1732,6 +1741,7 @@ export default function AdminEmployeesPage() {
               <p className="text-[10px] text-slate-400">Enter the Employee No. from the Hikvision device to auto-link attendance. Leave blank if not using a device.</p>
             </div>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeptMemberDialogOpen(false)} className="border-slate-200">Cancel</Button>
             <Button
