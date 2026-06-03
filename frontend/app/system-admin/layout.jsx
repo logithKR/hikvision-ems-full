@@ -13,7 +13,8 @@ import {
  User,
  LogOut,
  Menu,
- X
+ X,
+ Server
 } from"lucide-react"
 import { getCurrentUser, isAuthenticated, logoutUser } from"@/lib/auth"
 import { cn } from"@/lib/utils"
