@@ -127,38 +127,38 @@ export default function AdminDashboardPage() {
  const quotaBarColor ="bg-blue-600"
 
  const statsData = [
- {
- title:"Active Employees",
- value: employees.active || 0,
- subtitle: `${employees.inactive || 0} inactive`,
- icon: Users,
- accent:"text-blue-600",
- iconBg:"bg-blue-50 border-blue-100",
- },
- {
- title:"Present Today",
- value: attendance.presentCount || 0,
- subtitle:"Checked in",
- icon: UserCheck,
- accent:"text-blue-600",
- iconBg:"bg-blue-50 border-blue-100",
- },
- {
- title:"Absent",
- value: (employees.active || 0) - (attendance.presentCount || 0),
- subtitle:"Not checked in",
- icon: UserX,
- accent:"text-muted-foreground",
- iconBg:"bg-background border-border",
- },
- {
- title:"Pending Requests",
- value: leaves.pendingCount || 0,
- subtitle:"Leaves awaiting",
- icon: FileText,
- accent:"text-blue-600",
- iconBg:"bg-blue-50 border-blue-100",
- },
+  {
+  title:"Active Employees",
+  value: employees.active || 0,
+  subtitle: `${employees.inactive || 0} inactive`,
+  icon: Users,
+  accent:"text-blue-600 dark:text-blue-400",
+  iconBg:"bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20",
+  },
+  {
+  title:"Present Today",
+  value: attendance.presentCount || 0,
+  subtitle:"Checked in",
+  icon: UserCheck,
+  accent:"text-blue-600 dark:text-blue-400",
+  iconBg:"bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20",
+  },
+  {
+  title:"Absent",
+  value: (employees.active || 0) - (attendance.presentCount || 0),
+  subtitle:"Not checked in",
+  icon: UserX,
+  accent:"text-muted-foreground",
+  iconBg:"bg-secondary border-border",
+  },
+  {
+  title:"Pending Requests",
+  value: leaves.pendingCount || 0,
+  subtitle:"Leaves awaiting",
+  icon: FileText,
+  accent:"text-blue-600 dark:text-blue-400",
+  iconBg:"bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20",
+  },
  ]
 
  const quickActions = [
@@ -168,34 +168,34 @@ export default function AdminDashboardPage() {
  ]
 
  return (
- <div className="min-h-screen bg-background p-4 sm:p-6 space-y-4 sm:space-y-6">
+ <div className="space-y-4 sm:space-y-6">
 
- {/* Page Header */}
- <div className="bg-gradient-to-r from-blue-600 to-blue-700 sm:from-white sm:to-white rounded-2xl px-5 py-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 sm:gap-4 shadow-sm sm:border sm:border-border">
- <div>
- <h1 className="text-2xl sm:text-xl font-bold text-white sm:text-foreground tracking-tight">Dashboard</h1>
- <p className="text-sm text-blue-100 sm:text-muted-foreground mt-1">
- Overview for <span className="text-white sm:text-foreground font-medium">{currentUser?.name}</span>
- </p>
- </div>
- <div className="flex w-full sm:w-auto gap-3">
- <Button
- onClick={loadDashboard}
- variant="outline"
- className="flex-1 sm:flex-none gap-2 border-white/30 sm:border-border text-white sm:text-slate-600 hover:bg-card/10 sm:hover:bg-background bg-card/10 sm:bg-transparent"
- >
- <RefreshCw className="h-4 w-4" />
- <span className="hidden sm:inline">Refresh</span>
- </Button>
- <Button
- onClick={() => navigate("/admin/employees")}
- className="flex-1 sm:flex-none gap-2 bg-card sm:bg-blue-600 text-blue-600 sm:text-white hover:bg-blue-50 sm:hover:bg-blue-700 shadow-none"
- >
- <Plus className="h-4 w-4" />
- Add Employee
- </Button>
- </div>
- </div>
+  {/* Page Header */}
+  <div className="bg-gradient-to-r from-blue-600 to-blue-700 sm:from-card sm:to-card rounded-2xl px-5 py-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 sm:gap-4 shadow-sm sm:border sm:border-border">
+  <div>
+  <h1 className="text-2xl sm:text-xl font-bold text-white sm:text-foreground tracking-tight">Dashboard</h1>
+  <p className="text-sm text-blue-100 sm:text-muted-foreground mt-1">
+  Overview for <span className="text-white sm:text-foreground font-medium">{currentUser?.name}</span>
+  </p>
+  </div>
+  <div className="flex w-full sm:w-auto gap-3">
+  <Button
+  onClick={loadDashboard}
+  variant="outline"
+  className="flex-1 sm:flex-none gap-2 border-white/30 sm:border-border text-white sm:text-foreground hover:bg-card/10 sm:hover:bg-muted bg-card/10 sm:bg-background"
+  >
+  <RefreshCw className="h-4 w-4" />
+  <span className="hidden sm:inline">Refresh</span>
+  </Button>
+  <Button
+  onClick={() => navigate("/admin/employees")}
+  className="flex-1 sm:flex-none gap-2 bg-card sm:bg-blue-600 text-blue-600 sm:text-white hover:bg-blue-50 sm:hover:bg-blue-700 shadow-none dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+  >
+  <Plus className="h-4 w-4" />
+  Add Employee
+  </Button>
+  </div>
+  </div>
 
  {/* Error Alert */}
  {error && (

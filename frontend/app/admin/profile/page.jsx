@@ -227,15 +227,15 @@ export default function AdminProfilePage() {
 
  if (!currentUser) {
  return (
- <div className="flex min-h-screen items-center justify-center bg-background">
- <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
- </div>
- )
+  <div className="flex items-center justify-center py-20">
+  <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+  </div>
+  )
  }
 
  return (
- <div className="min-h-screen bg-background animate-in fade-in-50 duration-500">
- <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+  <div className="animate-in fade-in-50 duration-500">
+  <div className="mx-auto max-w-5xl space-y-6">
  {/* ── Page Header ─────────────────────────────────── */}
  <div className="bg-card border border-border rounded-xl px-4 sm:px-6 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 sm:gap-6 shadow-sm">
  <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-5">

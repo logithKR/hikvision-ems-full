@@ -81,7 +81,7 @@ const OrgNode = ({ data, id }) => {
  
  {data.hasChildren && (
  <button 
- className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 bg-card border border-slate-300 rounded-full h-7 w-7 flex items-center justify-center hover:bg-blue-50 shadow-sm z-10 text-muted-foreground hover:text-blue-600 hover:border-blue-300 transition-colors"
+ className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 bg-card border border-border rounded-full h-7 w-7 flex items-center justify-center hover:bg-secondary shadow-sm z-10 text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
  onClick={(e) => {
  e.stopPropagation();
  data.toggleNode(id);
@@ -168,8 +168,8 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
  profileImageUrl: node.profileImageUrl,
  employeeId: node.employeeId,
  isActive: node.isActive,
- bgColor: node.type === 'org' ? 'bg-blue-100 dark:bg-blue-900/40' : node.type === 'dept' ? 'bg-secondary' : node.isHod ? 'bg-purple-100 dark:bg-purple-900/40' : node.isManager ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'bg-secondary',
- textColor: node.type === 'org' ? 'text-blue-700 dark:text-blue-300' : node.type === 'dept' ? 'text-foreground' : node.isHod ? 'text-purple-700 dark:text-purple-300' : node.isManager ? 'text-indigo-700 dark:text-indigo-300' : 'text-foreground',
+ bgColor: node.type === 'org' ? 'bg-blue-100 dark:bg-blue-900/40' : node.type === 'dept' ? 'bg-slate-100 dark:bg-slate-800' : node.isHod ? 'bg-purple-100 dark:bg-purple-900/40' : node.isManager ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'bg-secondary',
+ textColor: node.type === 'org' ? 'text-blue-700 dark:text-blue-300' : node.type === 'dept' ? 'text-slate-700 dark:text-slate-300' : node.isHod ? 'text-purple-700 dark:text-purple-300' : node.isManager ? 'text-indigo-700 dark:text-indigo-300' : 'text-foreground',
  isExpanded,
  hasChildren,
  isMatch,
@@ -234,9 +234,9 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
  selectionOnDrag={true}
  zoomOnScroll={false} // Zoom requires Ctrl/Cmd + scroll or pinch
  zoomOnDoubleClick={true}
- className="bg-[#f8fafc]"
+ className="bg-transparent"
  >
- <Background color="#cbd5e1" gap={24} size={1.5} />
+ <Background color="#64748b" gap={24} size={1.5} />
  <Controls position="top-right" showInteractive={false} className="bg-card border-border shadow-md rounded-lg overflow-hidden [&>button]:border-border mt-2 mr-2" />
  <MiniMap 
  nodeStrokeColor="#cbd5e1" 
@@ -465,9 +465,9 @@ export default function AdminOrgChartPage() {
  }
 
  return (
- <div className="flex flex-col h-[calc(100vh-11rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] overflow-hidden relative rounded-xl shadow-sm border border-border bg-card">
+ <div className="flex flex-col h-[calc(100vh-11rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] relative space-y-4">
  {/* Header Controls */}
- <div className="flex-none bg-card border-b border-border px-4 sm:px-6 py-4 z-30 relative">
+ <div className="flex-none bg-card rounded-2xl border border-border px-4 sm:px-6 py-4 z-30 relative shadow-sm">
  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
  <div>
  <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
@@ -504,15 +504,15 @@ export default function AdminOrgChartPage() {
 
  {/* Error State */}
  {error && (
- <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl shadow-lg">
+ <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl shadow-lg">
  <AlertCircle className="h-5 w-5 text-red-500" />
  <p className="text-sm text-red-700">{error.message}</p>
  </div>
  )}
 
- <div className="flex-1 w-full h-full relative bg-[#f8fafc] overflow-hidden">
+ <div className="flex-1 w-full h-full relative bg-transparent overflow-hidden rounded-xl">
  {isLoading ? (
- <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+ <div className="absolute inset-0 flex items-center justify-center bg-transparent z-10">
  <RefreshCw className="h-8 w-8 text-indigo-600 animate-spin" />
  </div>
  ) : treeData ? (
