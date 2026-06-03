@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from"react"
+import React, { createContext, useContext, useEffect, useState } from"react"
 
 const initialState = {
  theme:"system",
@@ -10,12 +10,12 @@ const ThemeProviderContext = createContext(initialState)
 export function ThemeProvider({
  children,
  defaultTheme ="system",
- storageKey ="vite-ui-theme",
+ storageKey ="ems-ui-theme",
  ...props
 }) {
- const [theme, setTheme] = useState(() => {
- return localStorage.getItem(storageKey) || defaultTheme
- })
+ const [theme, setTheme] = useState(
+ () => (localStorage.getItem(storageKey)) || defaultTheme
+ )
 
  useEffect(() => {
  const root = window.document.documentElement
@@ -37,9 +37,9 @@ export function ThemeProvider({
 
  const value = {
  theme,
- setTheme: (theme) => {
- localStorage.setItem(storageKey, theme)
- setTheme(theme)
+ setTheme: (newTheme) => {
+ localStorage.setItem(storageKey, newTheme)
+ setTheme(newTheme)
  },
  }
 

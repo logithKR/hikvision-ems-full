@@ -21,60 +21,60 @@ import { useCallback, useRef } from 'react'
  * @param {*} options.initialData - Seed data for instant render
  */
 export function useOptimisticQuery({
-    queryKey,
-    queryFn,
-    enabled = true,
-    refetchInterval = 15000,
-    staleTime = 30000,
-    placeholderData = undefined,
-    initialData = undefined,
-    ...rest
+ queryKey,
+ queryFn,
+ enabled = true,
+ refetchInterval = 15000,
+ staleTime = 30000,
+ placeholderData = undefined,
+ initialData = undefined,
+ ...rest
 }) {
-    const queryClient = useQueryClient()
-    const hasLoadedOnce = useRef(false)
+ const queryClient = useQueryClient()
+ const hasLoadedOnce = useRef(false)
 
-    const query = useQuery({
-        queryKey,
-        queryFn,
-        enabled,
-        staleTime,
-        refetchInterval: enabled ? refetchInterval : false,
-        refetchIntervalInBackground: true,
-        refetchOnWindowFocus: true,
-        keepPreviousData: true,
-        placeholderData: placeholderData,
-        initialData: initialData,
-        ...rest,
-    })
+ const query = useQuery({
+ queryKey,
+ queryFn,
+ enabled,
+ staleTime,
+ refetchInterval: enabled ? refetchInterval : false,
+ refetchIntervalInBackground: true,
+ refetchOnWindowFocus: true,
+ keepPreviousData: true,
+ placeholderData: placeholderData,
+ initialData: initialData,
+ ...rest,
+ })
 
-    // Track first successful load
-    if (query.isSuccess && !hasLoadedOnce.current) {
-        hasLoadedOnce.current = true
-    }
+ // Track first successful load
+ if (query.isSuccess && !hasLoadedOnce.current) {
+ hasLoadedOnce.current = true
+ }
 
-    // Manual refresh (for pull-to-refresh or button)
-    const refresh = useCallback(() => {
-        queryClient.invalidateQueries({ queryKey })
-    }, [queryClient, queryKey])
+ // Manual refresh (for pull-to-refresh or button)
+ const refresh = useCallback(() => {
+ queryClient.invalidateQueries({ queryKey })
+ }, [queryClient, queryKey])
 
-    // Optimistic setter: instantly update cache, rollback on error
-    const setOptimistic = useCallback((updater) => {
-        queryClient.setQueryData(queryKey, (old) => {
-            if (typeof updater === 'function') return updater(old)
-            return updater
-        })
-    }, [queryClient, queryKey])
+ // Optimistic setter: instantly update cache, rollback on error
+ const setOptimistic = useCallback((updater) => {
+ queryClient.setQueryData(queryKey, (old) => {
+ if (typeof updater === 'function') return updater(old)
+ return updater
+ })
+ }, [queryClient, queryKey])
 
-    return {
-        ...query,
-        refresh,
-        setOptimistic,
-        hasLoadedOnce: hasLoadedOnce.current,
-        // True only on very first load (no cached data)
-        isFirstLoad: query.isLoading && !hasLoadedOnce.current,
-        // True when refreshing in background (has data + fetching)
-        isBackgroundRefresh: query.isFetching && hasLoadedOnce.current,
-    }
+ return {
+ ...query,
+ refresh,
+ setOptimistic,
+ hasLoadedOnce: hasLoadedOnce.current,
+ // True only on very first load (no cached data)
+ isFirstLoad: query.isLoading && !hasLoadedOnce.current,
+ // True when refreshing in background (has data + fetching)
+ isBackgroundRefresh: query.isFetching && hasLoadedOnce.current,
+ }
 }
 
 /**
@@ -82,27 +82,27 @@ export function useOptimisticQuery({
  * Seeds multiple query keys with periodic refetches
  */
 export function useBackgroundSync(queries, { enabled = true, interval = 20000 } = {}) {
-    const queryClient = useQueryClient()
+ const queryClient = useQueryClient()
 
-    queries.forEach(({ queryKey, queryFn }) => {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        useQuery({
-            queryKey,
-            queryFn,
-            enabled,
-            staleTime: interval,
-            refetchInterval: enabled ? interval : false,
-            refetchIntervalInBackground: true,
-        })
-    })
+ queries.forEach(({ queryKey, queryFn }) => {
+ // eslint-disable-next-line react-hooks/rules-of-hooks
+ useQuery({
+ queryKey,
+ queryFn,
+ enabled,
+ staleTime: interval,
+ refetchInterval: enabled ? interval : false,
+ refetchIntervalInBackground: true,
+ })
+ })
 
-    const refreshAll = useCallback(() => {
-        queries.forEach(({ queryKey }) => {
-            queryClient.invalidateQueries({ queryKey })
-        })
-    }, [queryClient, queries])
+ const refreshAll = useCallback(() => {
+ queries.forEach(({ queryKey }) => {
+ queryClient.invalidateQueries({ queryKey })
+ })
+ }, [queryClient, queries])
 
-    return { refreshAll }
+ return { refreshAll }
 }
 
 export default useOptimisticQuery

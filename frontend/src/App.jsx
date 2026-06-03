@@ -43,60 +43,60 @@ import SAOrganizationsPage from '@/app/system-admin/organizations/page'
 import SAProfilePage from '@/app/system-admin/profile/page'
 
 export default function App() {
-    return (
-        <>
-            <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<UnifiedLoginPage />} />
+ return (
+ <>
+ <Routes>
+ {/* Public Routes */}
+ <Route path="/" element={<LandingPage />} />
+ <Route path="/login" element={<UnifiedLoginPage />} />
 
-                {/* Admin Routes */}
-                <Route path="/admin" element={<AdminLayout />}>
-                    <Route path="dashboard" element={<AdminDashboardPage />} />
-                    <Route path="org-chart" element={<AdminOrgChartPage />} />
-                    <Route path="employees" element={<AdminEmployeesPage />} />
-                    <Route path="attendance" element={<AdminAttendancePage />} />
-                    <Route path="leave-requests" element={<AdminLeaveRequestsPage />} />
-                    <Route path="profile" element={<AdminProfilePage />} />
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                </Route>
+ {/* Admin Routes */}
+ <Route path="/admin" element={<AdminLayout />}>
+ <Route path="dashboard" element={<AdminDashboardPage />} />
+ <Route path="org-chart" element={<AdminOrgChartPage />} />
+ <Route path="employees" element={<AdminEmployeesPage />} />
+ <Route path="attendance" element={<AdminAttendancePage />} />
+ <Route path="leave-requests" element={<AdminLeaveRequestsPage />} />
+ <Route path="profile" element={<AdminProfilePage />} />
+ <Route index element={<Navigate to="dashboard" replace />} />
+ </Route>
 
-                {/* Employee Routes */}
-                <Route path="/employee" element={<EmployeeLayout />}>
-                    <Route path="dashboard" element={<EmployeeDashboardPage />} />
-                    <Route path="attendance" element={<EmployeeAttendancePage />} />
-                    <Route path="leave-requests" element={<EmployeeLeaveRequestsPage />} />
-                    <Route path="weekly-hours" element={<EmployeeWeeklyHoursPage />} />
-                    <Route path="profile" element={<EmployeeProfilePage />} />
-                    <Route path="team" element={<EmployeeTeamPage />} />
-                    <Route path="team/attendance" element={<EmployeeTeamAttendancePage />} />
-                    <Route path="team/leaves" element={<EmployeeTeamLeavesPage />} />
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                </Route>
+ {/* Employee Routes */}
+ <Route path="/employee" element={<EmployeeLayout />}>
+ <Route path="dashboard" element={<EmployeeDashboardPage />} />
+ <Route path="attendance" element={<EmployeeAttendancePage />} />
+ <Route path="leave-requests" element={<EmployeeLeaveRequestsPage />} />
+ <Route path="weekly-hours" element={<EmployeeWeeklyHoursPage />} />
+ <Route path="profile" element={<EmployeeProfilePage />} />
+ <Route path="team" element={<EmployeeTeamPage />} />
+ <Route path="team/attendance" element={<EmployeeTeamAttendancePage />} />
+ <Route path="team/leaves" element={<EmployeeTeamLeavesPage />} />
+ <Route index element={<Navigate to="dashboard" replace />} />
+ </Route>
 
-                {/* Business Owner Routes */}
-                <Route path="/business-owner/register" element={<BORegisterPage />} />
-                <Route path="/business-owner" element={<BusinessOwnerLayout />}>
-                    <Route path="dashboard" element={<BODashboardPage />} />
-                    <Route path="employees" element={<BOEmployeesPage />} />
-                    <Route path="attendance" element={<BOAttendancePage />} />
-                    <Route path="leave-requests" element={<BOLeaveRequestsPage />} />
-                    <Route path="profile" element={<BOProfilePage />} />
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                </Route>
+ {/* Business Owner Routes */}
+ <Route path="/business-owner/register" element={<BORegisterPage />} />
+ <Route path="/business-owner" element={<BusinessOwnerLayout />}>
+ <Route path="dashboard" element={<BODashboardPage />} />
+ <Route path="employees" element={<BOEmployeesPage />} />
+ <Route path="attendance" element={<BOAttendancePage />} />
+ <Route path="leave-requests" element={<BOLeaveRequestsPage />} />
+ <Route path="profile" element={<BOProfilePage />} />
+ <Route index element={<Navigate to="dashboard" replace />} />
+ </Route>
 
-                {/* System Admin Routes */}
-                <Route path="/system-admin" element={<SystemAdminLayout />}>
-                    <Route path="dashboard" element={<SADashboardPage />} />
-                    <Route path="organizations" element={<SAOrganizationsPage />} />
-                    <Route path="profile" element={<SAProfilePage />} />
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                </Route>
+ {/* System Admin Routes */}
+ <Route path="/system-admin" element={<SystemAdminLayout />}>
+ <Route path="dashboard" element={<SADashboardPage />} />
+ <Route path="organizations" element={<SAOrganizationsPage />} />
+ <Route path="profile" element={<SAProfilePage />} />
+ <Route index element={<Navigate to="dashboard" replace />} />
+ </Route>
 
-                {/* Catch all */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <Toaster richColors position="top-right" />
-        </>
-    )
+ {/* Catch all */}
+ <Route path="*" element={<Navigate to="/" replace />} />
+ </Routes>
+ <Toaster richColors position="top-right" />
+ </>
+ )
 }

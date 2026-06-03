@@ -10,43 +10,43 @@
  * @param {string} path - Path to redirect to
  */
 export function safeRedirect(navigate, path) {
-  try {
-    // Validate path format
-    if (!path || typeof path !== 'string') {
-      console.error('⚠️ Invalid redirect path:', path);
-      return;
-    }
+ try {
+ // Validate path format
+ if (!path || typeof path !== 'string') {
+ console.error('⚠️ Invalid redirect path:', path);
+ return;
+ }
 
-    // Ensure path starts with /
-    if (!path.startsWith('/')) {
-      path = '/' + path;
-    }
+ // Ensure path starts with /
+ if (!path.startsWith('/')) {
+ path = '/' + path;
+ }
 
-    // Prevent protocol-relative URLs (//evil.com)
-    if (path.startsWith('//')) {
-      console.warn('⚠️ Protocol-relative URL blocked:', path);
-      navigate('/login');
-      return;
-    }
+ // Prevent protocol-relative URLs (//evil.com)
+ if (path.startsWith('//')) {
+ console.warn('⚠️ Protocol-relative URL blocked:', path);
+ navigate('/login');
+ return;
+ }
 
-    // Prevent javascript: URLs
-    if (path.toLowerCase().startsWith('javascript:')) {
-      console.warn('⚠️ JavaScript URL blocked:', path);
-      navigate('/login');
-      return;
-    }
+ // Prevent javascript: URLs
+ if (path.toLowerCase().startsWith('javascript:')) {
+ console.warn('⚠️ JavaScript URL blocked:', path);
+ navigate('/login');
+ return;
+ }
 
-    console.log('✅ Redirecting to:', path);
-    navigate(path);
-  } catch (error) {
-    console.error('❌ Error during redirect:', error);
-    // Fallback: try to redirect to home page
-    try {
-      navigate('/');
-    } catch (fallbackError) {
-      console.error('❌ Fallback redirect also failed:', fallbackError);
-    }
-  }
+ console.log('✅ Redirecting to:', path);
+ navigate(path);
+ } catch (error) {
+ console.error('❌ Error during redirect:', error);
+ // Fallback: try to redirect to home page
+ try {
+ navigate('/');
+ } catch (fallbackError) {
+ console.error('❌ Fallback redirect also failed:', fallbackError);
+ }
+ }
 }
 
 /**
@@ -55,34 +55,34 @@ export function safeRedirect(navigate, path) {
  * @param {'admin'|'employee'|'business_owner'|'system_admin'} userType - Type of user logging out
  */
 export function handleLogout(navigate, userType = null) {
-  try {
-    // Clear all authentication related localStorage items
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('firebaseToken');
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('adminLoggedIn');
-    localStorage.removeItem('employeeLoggedIn');
-    localStorage.removeItem('businessOwnerLoggedIn');
-    localStorage.removeItem('systemAdminLoggedIn');
+ try {
+ // Clear all authentication related localStorage items
+ localStorage.removeItem('isLoggedIn');
+ localStorage.removeItem('firebaseToken');
+ localStorage.removeItem('currentUser');
+ localStorage.removeItem('adminLoggedIn');
+ localStorage.removeItem('employeeLoggedIn');
+ localStorage.removeItem('businessOwnerLoggedIn');
+ localStorage.removeItem('systemAdminLoggedIn');
 
-    // Redirect to appropriate login page
-    let loginPath = '/login';
-    if (userType) {
-      const loginPaths = {
-        'admin': '/login',
-        'employee': '/login',
-        'business_owner': '/login',
-        'system_admin': '/login'
-      };
-      loginPath = loginPaths[userType] || '/login';
-    }
+ // Redirect to appropriate login page
+ let loginPath = '/login';
+ if (userType) {
+ const loginPaths = {
+ 'admin': '/login',
+ 'employee': '/login',
+ 'business_owner': '/login',
+ 'system_admin': '/login'
+ };
+ loginPath = loginPaths[userType] || '/login';
+ }
 
-    safeRedirect(navigate, loginPath);
-  } catch (error) {
-    console.error('❌ Error during logout:', error);
-    // Even if cleanup fails, still try to redirect
-    safeRedirect(navigate, '/login');
-  }
+ safeRedirect(navigate, loginPath);
+ } catch (error) {
+ console.error('❌ Error during logout:', error);
+ // Even if cleanup fails, still try to redirect
+ safeRedirect(navigate, '/login');
+ }
 }
 
 /**
@@ -91,16 +91,16 @@ export function handleLogout(navigate, userType = null) {
  * @param {string} role - User role
  */
 export function redirectByRole(navigate, role) {
-  const roleRoutes = {
-    'admin': '/admin/dashboard',
-    'business_owner': '/business-owner/dashboard',
-    'employee': '/employee/dashboard',
-    'system_admin': '/system-admin/dashboard'
-  };
+ const roleRoutes = {
+ 'admin': '/admin/dashboard',
+ 'business_owner': '/business-owner/dashboard',
+ 'employee': '/employee/dashboard',
+ 'system_admin': '/system-admin/dashboard'
+ };
 
-  const destination = roleRoutes[role] || '/login';
-  console.log(`✅ Redirecting ${role} to ${destination}`);
-  safeRedirect(navigate, destination);
+ const destination = roleRoutes[role] || '/login';
+ console.log(`✅ Redirecting ${role} to ${destination}`);
+ safeRedirect(navigate, destination);
 }
 
 /**
@@ -110,22 +110,22 @@ export function redirectByRole(navigate, role) {
  * @param {string} returnUrl - URL to return to after login
  */
 export function redirectToLogin(navigate, role = null, returnUrl = null) {
-  let loginPath = '/login';
+ let loginPath = '/login';
 
-  if (role) {
-    const loginRoutes = {
-      'admin': '/login',
-      'business_owner': '/login',
-      'employee': '/login',
-      'system_admin': '/login'
-    };
-    loginPath = loginRoutes[role] || '/login';
-  }
+ if (role) {
+ const loginRoutes = {
+ 'admin': '/login',
+ 'business_owner': '/login',
+ 'employee': '/login',
+ 'system_admin': '/login'
+ };
+ loginPath = loginRoutes[role] || '/login';
+ }
 
-  if (returnUrl) {
-    loginPath += `?returnUrl=${encodeURIComponent(returnUrl)}`;
-  }
+ if (returnUrl) {
+ loginPath += `?returnUrl=${encodeURIComponent(returnUrl)}`;
+ }
 
-  console.log('🔒 Redirecting to login:', loginPath);
-  safeRedirect(navigate, loginPath);
+ console.log('🔒 Redirecting to login:', loginPath);
+ safeRedirect(navigate, loginPath);
 }

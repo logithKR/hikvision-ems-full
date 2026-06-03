@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* 
   PROFESSIONAL BLUE ENTERPRISE THEME 
@@ -113,6 +113,12 @@ html {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  color-scheme: light;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 /* Smooth Transitions for Interactive Elements */

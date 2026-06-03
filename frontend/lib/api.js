@@ -16,48 +16,48 @@ const getApiBase = () => API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_B
  * @returns {Promise<Object>} Response data
  */
 export async function apiRequest(endpoint, options = {}) {
-  try {
-    // Get token
-    const token = await getValidIdToken();
+ try {
+ // Get token
+ const token = await getValidIdToken();
 
-    // Build headers
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+ // Build headers
+ const headers = {
+ 'Content-Type': 'application/json',
+ ...options.headers,
+ };
 
-    // Add authorization header if token exists
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+ // Add authorization header if token exists
+ if (token) {
+ headers['Authorization'] = `Bearer ${token}`;
+ }
 
-    // Build full URL
-    const url = `${getApiBase()}${endpoint}`;
-    console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
+ // Build full URL
+ const url = `${getApiBase()}${endpoint}`;
+ console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
 
-    // Make request
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+ // Make request
+ const response = await fetch(url, {
+ ...options,
+ headers,
+ });
 
-    // Parse response
-    const data = await response.json();
+ // Parse response
+ const data = await response.json();
 
-    // Handle errors
-    if (!response.ok) {
-      const errorMessage = data.error || data.message || `HTTP ${response.status}`;
-      console.error('❌ API Error:', errorMessage);
-      throw new Error(errorMessage);
-    }
+ // Handle errors
+ if (!response.ok) {
+ const errorMessage = data.error || data.message || `HTTP ${response.status}`;
+ console.error('❌ API Error:', errorMessage);
+ throw new Error(errorMessage);
+ }
 
-    console.log('✅ API Success');
-    return data;
+ console.log('✅ API Success');
+ return data;
 
-  } catch (error) {
-    console.error('❌ API Request Failed:', error);
-    throw error;
-  }
+ } catch (error) {
+ console.error('❌ API Request Failed:', error);
+ throw error;
+ }
 }
 
 /**
@@ -66,30 +66,30 @@ export async function apiRequest(endpoint, options = {}) {
  * @returns {Promise<Object>} User data
  */
 export async function getCurrentUser(token) {
-  const url = `${getApiBase()}/auth/me`;
-  console.log('🔐 Fetching current user from:', url);
+ const url = `${getApiBase()}/auth/me`;
+ console.log('🔐 Fetching current user from:', url);
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    }
-  });
+ const response = await fetch(url, {
+ method: 'GET',
+ headers: {
+ 'Content-Type': 'application/json',
+ 'Authorization': `Bearer ${token}`
+ }
+ });
 
-  const data = await response.json();
+ const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to get user');
-  }
+ if (!response.ok) {
+ throw new Error(data.error || data.message || 'Failed to get user');
+ }
 
-  return data;
+ return data;
 }
 
 // Export convenience methods
 export default {
-  get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
-  post: (endpoint, body) => apiRequest(endpoint, { method: 'POST', body: JSON.stringify(body) }),
-  put: (endpoint, body) => apiRequest(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
-  delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
+ get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
+ post: (endpoint, body) => apiRequest(endpoint, { method: 'POST', body: JSON.stringify(body) }),
+ put: (endpoint, body) => apiRequest(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
+ delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
 };
