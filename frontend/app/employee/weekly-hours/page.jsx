@@ -33,7 +33,13 @@ export default function WeeklyHoursPage() {
  queryFn: fetchWeeklyHours,
  })
 
- const weeklyData = data?.weekly || []
+ const weeklyData = (data?.records || []).map(r => {
+ const dateObj = new Date(r.date)
+ return {
+ day: dateObj.toLocaleDateString('en-US', { weekday: 'short' }),
+ hours: r.hoursWorked || (r.totalHours ? parseFloat(r.totalHours) || 0 : 0)
+ }
+ })
  const totals = useMemo(() => ({
  total: data?.stats?.totalHours || 0,
  longest: data?.stats?.longestDay || 0,

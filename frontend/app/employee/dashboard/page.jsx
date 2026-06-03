@@ -138,7 +138,7 @@ export default function EmployeeDashboardPage() {
  const isOnBreak = !!(todayRecord?.breakIn && !todayRecord?.breakOut)
 
  const todayWorkMins = todayRecord ? parseTimeToMinutes(todayRecord.totalHours) : 0
- const todayHoursStr = todayWorkMins > 0 ? `${Math.floor(todayWorkMins / 60)}h ${todayWorkMins % 60}m` : '0h'
+ const todayHoursStr = todayWorkMins > 0 ? `${Math.floor(todayWorkMins / 60)}h ${Math.floor(todayWorkMins % 60)}m` : (isWorking ? '< 1m' : '0h')
 
  // Days at company
  const daysAtCompany = useMemo(() => {
@@ -255,7 +255,7 @@ export default function EmployeeDashboardPage() {
 
  {/* Right: CTA */}
  <div className="flex flex-col gap-3 w-full md:w-auto">
- <Button size="sm" className="w-full md:w-auto bg-card text-blue-700 hover:bg-blue-50 shadow-lg font-bold px-5 py-4 rounded-xl transition-all hover:scale-105 active:scale-95" onClick={() => navigate('/employee/attendance')}>
+ <Button size="sm" className="w-full md:w-auto bg-white text-blue-700 hover:bg-blue-50 dark:bg-card dark:text-blue-400 dark:hover:bg-slate-800 shadow-lg font-bold px-5 py-4 rounded-xl transition-all hover:scale-105 active:scale-95" onClick={() => navigate('/employee/attendance')}>
  Attendance <ChevronRight className="ml-1 h-4 w-4" />
  </Button>
  <Button variant="ghost" size="sm" className="w-full md:w-auto text-white border border-white/20 hover:bg-card/10 text-sm rounded-xl py-3" onClick={() => navigate('/employee/profile')}>
@@ -306,7 +306,7 @@ export default function EmployeeDashboardPage() {
  { label: 'Total Hours', value: stats.totalHours, accent: true },
  { label: 'Best Day', value: stats.longestDay, accent: false },
  ].map(({ label, value, accent }) => (
- <div key={label} className={`rounded-xl p-2.5 ${accent ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-background /50'}`}>
+ <div key={label} className={`rounded-xl p-2.5 ${accent ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-secondary'}`}>
  <p className={`text-xl font-bold tracking-tight ${accent ? 'text-blue-600 dark:text-blue-400' : 'text-foreground '}`}>{value}</p>
  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">{label}</p>
  </div>
@@ -359,7 +359,7 @@ export default function EmployeeDashboardPage() {
 
  {/* Recent Leave Requests */}
  <Card className="shadow-sm border-border bg-card rounded-2xl">
- <CardHeader className="border-b border-slate-50 px-6 py-4 flex flex-row items-center justify-between">
+ <CardHeader className="border-b border-border px-6 py-4 flex flex-row items-center justify-between">
  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
  <CalendarDays className="h-4 w-4 text-muted-foreground" /> My Leaves
  {pendingLeaves.length > 0 && (
@@ -381,7 +381,7 @@ export default function EmployeeDashboardPage() {
  const statusKey = leave.status?.toLowerCase() || 'pending'
  const cfg = leaveStatusConfig[statusKey] || leaveStatusConfig.pending
  return (
- <div key={leave.id || i} className="flex items-center justify-between p-3 rounded-xl bg-background /50 gap-3">
+ <div key={leave.id || i} className="flex items-center justify-between p-3 rounded-xl bg-secondary gap-3">
  <div className="flex-1 min-w-0">
  <p className="text-xs font-bold text-foreground capitalize">{leave.leaveType}</p>
  <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
@@ -401,7 +401,7 @@ export default function EmployeeDashboardPage() {
 
  {/* Upcoming Approved + Manager Info */}
  <Card className="shadow-sm border-border bg-card rounded-2xl">
- <CardHeader className="border-b border-slate-50 px-6 py-4">
+ <CardHeader className="border-b border-border px-6 py-4">
  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
  <User className="h-4 w-4 text-muted-foreground" /> My Info
  </CardTitle>
@@ -415,7 +415,7 @@ export default function EmployeeDashboardPage() {
  { icon: <User className="h-3 w-3 text-muted-foreground" />, label: 'Email', value: profile?.email },
  { icon: <Activity className="h-3 w-3 text-muted-foreground" />, label: 'Device ID', value: profile?.hikvisionEmployeeId },
  ].map(({ icon, label, value }) => value ? (
- <div key={label} className="flex items-center gap-2 p-2.5 rounded-lg bg-background /50">
+ <div key={label} className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary">
  <div className="w-6 h-6 rounded-md bg-card dark:bg-slate-700 flex items-center justify-center shadow-sm shrink-0">{icon}</div>
  <div className="min-w-0">
  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
@@ -444,7 +444,7 @@ export default function EmployeeDashboardPage() {
 
  {/* 7-Day Trend */}
  <Card className="shadow-sm border-border bg-card rounded-2xl">
- <CardHeader className="border-b border-slate-50 px-5 py-3">
+ <CardHeader className="border-b border-border px-5 py-3">
  <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
  <Calendar className="h-3.5 w-3.5 text-muted-foreground" /> 7-Day Trend
  </CardTitle>
@@ -456,7 +456,7 @@ export default function EmployeeDashboardPage() {
  <Tooltip key={idx}>
  <TooltipTrigger asChild>
  <div className="flex flex-col items-center gap-2 flex-1 group cursor-pointer h-full justify-end">
- <div className="w-full bg-background rounded-lg relative flex items-end overflow-hidden h-full">
+ <div className="w-full bg-secondary rounded-lg relative flex items-end overflow-hidden h-full">
  <div
  className="w-full bg-blue-200 dark:bg-blue-800 group-hover:bg-blue-400 transition-all duration-300 rounded-t-sm"
  style={{ height: `${day.h}%`, minHeight: day.h > 0 ? '4px' : '0' }}
@@ -465,8 +465,8 @@ export default function EmployeeDashboardPage() {
  <span className="text-[10px] font-bold text-muted-foreground tracking-wider shrink-0">{day.dayName.charAt(0)}</span>
  </div>
  </TooltipTrigger>
- <TooltipContent className="text-xs font-medium shadow-lg">
- {format(day.date, 'EEE, MMM dd')} — {Math.floor(day.mins / 60)}h {day.mins % 60}m
+ <TooltipContent className="text-xs font-medium shadow-lg bg-popover text-popover-foreground border-border">
+ {format(day.date, 'EEE, MMM dd')} — {day.mins > 0 ? `${Math.floor(day.mins / 60)}h ${Math.floor(day.mins % 60)}m` : (day.mins > 0 ? '< 1m' : '0h 0m')}
  </TooltipContent>
  </Tooltip>
  ))}
@@ -478,7 +478,7 @@ export default function EmployeeDashboardPage() {
 
  {/* ══ ROW 4: 30-DAY HEATMAP ════════════════════════════════════════════════ */}
  <Card className="shadow-sm border-border bg-card rounded-2xl overflow-hidden">
- <CardHeader className="border-b border-slate-50 px-6 py-4 flex flex-row items-center justify-between">
+ <CardHeader className="border-b border-border px-6 py-4 flex flex-row items-center justify-between">
  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
  <Activity className="h-4 w-4 text-muted-foreground" /> 30-Day Activity Map
  </CardTitle>
@@ -494,7 +494,7 @@ export default function EmployeeDashboardPage() {
  <TooltipProvider delayDuration={50}>
  {heatmapDays.map((day, idx) => {
  let cls = 'bg-secondary /50 border border-border '
- if (day.isWeekend) cls = 'bg-background border border-border opacity-40'
+ if (day.isWeekend) cls = 'bg-secondary border border-border opacity-40'
  if (day.intensity === 'low') cls = 'bg-blue-200 dark:bg-blue-900 border border-blue-300 dark:border-blue-800 shadow-sm'
  if (day.intensity === 'medium') cls = 'bg-blue-400 dark:bg-blue-700 shadow-sm'
  if (day.intensity === 'high') cls = 'bg-blue-600 dark:bg-blue-500 shadow-sm'
@@ -503,9 +503,9 @@ export default function EmployeeDashboardPage() {
  <TooltipTrigger asChild>
  <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-[4px] cursor-pointer transition-all hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 hover:scale-110 ${cls}`} />
  </TooltipTrigger>
- <TooltipContent className="text-xs shadow-lg">
- <p className="font-bold text-foreground">{day.formattedDate}</p>
- <p className="text-muted-foreground font-medium mt-0.5">{day.timeStr}</p>
+ <TooltipContent className="text-xs shadow-lg bg-popover text-popover-foreground border-border">
+ <p className="font-bold">{day.formattedDate}</p>
+ <p className="opacity-80 font-medium mt-0.5">{day.timeStr}</p>
  </TooltipContent>
  </Tooltip>
  )
@@ -517,7 +517,7 @@ export default function EmployeeDashboardPage() {
 
  {/* ══ ROW 5: 30-DAY LOGS TABLE ═════════════════════════════════════════════ */}
  <Card className="shadow-sm border-border rounded-2xl overflow-hidden">
- <CardHeader className="bg-card border-b border-slate-50 px-6 py-4 flex flex-row items-center justify-between">
+ <CardHeader className="bg-card border-b border-border px-6 py-4 flex flex-row items-center justify-between">
  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
  <Clock className="h-4 w-4 text-muted-foreground" /> Detailed Logs
  </CardTitle>
@@ -525,7 +525,7 @@ export default function EmployeeDashboardPage() {
  </CardHeader>
  <div className="overflow-x-auto">
  <table className="w-full text-sm text-left">
- <thead className="text-[10px] text-muted-foreground bg-background/80 uppercase tracking-widest border-b border-border">
+ <thead className="text-[10px] text-muted-foreground bg-secondary/80 uppercase tracking-widest border-b border-border">
  <tr>
  <th className="px-6 py-3 font-bold">Date</th>
  <th className="px-6 py-3 font-bold w-52">Visual</th>
@@ -533,7 +533,7 @@ export default function EmployeeDashboardPage() {
  <th className="px-6 py-3 font-bold text-center">Events</th>
  </tr>
  </thead>
- <tbody className="divide-y divide-slate-50 bg-card">
+ <tbody className="divide-y divide-border bg-card">
  {recent.length === 0 ? (
  <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
  <Clock className="h-8 w-8 mx-auto mb-3 opacity-20" /><p className="font-medium text-xs">No records found.</p>
@@ -547,7 +547,7 @@ export default function EmployeeDashboardPage() {
  else if (record.totalHours) workWidth = Math.min((parseTimeToMinutes(record.totalHours) / STANDARD_MINS) * 100, 100)
 
  return (
- <tr key={idx} className="hover:bg-background dark:hover:bg-slate-800/50 transition-colors">
+ <tr key={idx} className="hover:bg-secondary dark:hover:bg-slate-800/50 transition-colors">
  <td className="px-6 py-4 whitespace-nowrap">
  <div className="flex flex-col">
  <span className="font-bold text-foreground tracking-tight text-sm">{monthDay}</span>
@@ -561,19 +561,19 @@ export default function EmployeeDashboardPage() {
  </td>
  <td className="px-6 py-4 whitespace-nowrap">
  <span className="font-bold text-blue-600 dark:text-blue-400">
- {record.hoursWorked ? `${record.hoursWorked.toFixed(1)}h` : (record.totalHours || '--')}
+ {record.hoursWorked ? (record.hoursWorked > 0.016 ? `${record.hoursWorked.toFixed(1)}h` : '< 1m') : (record.totalHours || '--')}
  </span>
  </td>
  <td className="px-6 py-4 text-center">
  <TooltipProvider delayDuration={100}>
  <Tooltip>
  <TooltipTrigger asChild>
- <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-background hover:bg-blue-50 hover:text-blue-600 text-muted-foreground cursor-pointer border border-border transition-colors">
+ <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-secondary hover:bg-blue-50 hover:text-blue-600 text-muted-foreground cursor-pointer border border-border transition-colors">
  <MapPin className="h-3.5 w-3.5" />
  </div>
  </TooltipTrigger>
- <TooltipContent side="left" className="p-0 shadow-xl rounded-xl border-border">
- <div className="p-3 border-b border-border bg-background rounded-t-xl">
+ <TooltipContent side="left" className="p-0 shadow-xl rounded-xl border-border bg-popover text-popover-foreground">
+ <div className="p-3 border-b border-border bg-secondary/50 rounded-t-xl">
  <p className="font-bold text-foreground text-xs uppercase tracking-wider">{monthDay} — {record.checkIn || '--'} to {record.checkOut || '...'}</p>
  </div>
  <div className="p-3 space-y-2.5 max-w-[240px]">

@@ -201,7 +201,7 @@ export default function EmployeeProfilePage() {
 
  if (loading) {
  return <div className="flex items-center justify-center py-20">
- <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+ <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
  </div>
  }
 
@@ -211,7 +211,7 @@ export default function EmployeeProfilePage() {
  {/* Sidebar / User Card */}
  <Card className="w-full md:w-80 shadow-sm border-border shrink-0">
  <CardContent className="pt-6 flex flex-col items-center">
- <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-blue-50 mb-4 shadow-sm">
+ <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-blue-50 dark:border-blue-900/20 mb-4 shadow-sm">
  <AvatarFallback className="bg-blue-600 text-white text-3xl font-bold">
  {getInitials(profileData.name)}
  </AvatarFallback>
@@ -221,19 +221,19 @@ export default function EmployeeProfilePage() {
 
  <div className="w-full space-y-3 mt-4 pt-4 border-t border-border">
  <div className="flex items-center gap-3 text-sm">
- <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+ <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
  <Mail className="h-4 w-4" />
  </div>
  <span className="truncate text-foreground">{profileData.email}</span>
  </div>
  <div className="flex items-center gap-3 text-sm">
- <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+ <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
  <Building className="h-4 w-4" />
  </div>
  <span className="text-foreground">{profileData.department}</span>
  </div>
  <div className="flex items-center gap-3 text-sm">
- <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+ <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
  <Calendar className="h-4 w-4" />
  </div>
  <span className="text-foreground">Joined {profileData.hireDate && !isNaN(new Date(profileData.hireDate).getTime()) ? format(new Date(profileData.hireDate),"MMM yyyy") :"N/A"}</span>
@@ -241,7 +241,7 @@ export default function EmployeeProfilePage() {
  {profileData.managerName && (
  <div className="flex flex-col space-y-2 mt-4 pt-4 border-t border-border">
  <div className="flex items-center gap-3 text-sm">
- <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+ <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
  <UserCog className="h-4 w-4" />
  </div>
  <span className="text-foreground">Manager: <strong>{profileData.managerName}</strong></span>
@@ -314,7 +314,7 @@ export default function EmployeeProfilePage() {
  value={profileData.phone}
  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
  placeholder="Enter phone number"
- className="border-border focus:border-blue-500 focus:ring-blue-500"
+ className="border-border focus:border-blue-50 dark:border-blue-900/200 focus:ring-blue-500"
  />
  </div>
  <div className="space-y-2">
@@ -324,7 +324,7 @@ export default function EmployeeProfilePage() {
  value={profileData.address}
  onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
  placeholder="Enter your address"
- className="border-border focus:border-blue-500 focus:ring-blue-500"
+ className="border-border focus:border-blue-50 dark:border-blue-900/200 focus:ring-blue-500"
  />
  </div>
  <div className="space-y-2">
@@ -407,7 +407,7 @@ export default function EmployeeProfilePage() {
  value={passData.currentPassword}
  onChange={(e) => setPassData({ ...passData, currentPassword: e.target.value })}
  required
- className="border-border focus:border-blue-500"
+ className="border-border focus:border-blue-50 dark:border-blue-900/200"
  />
  </div>
  <div className="space-y-2">
@@ -418,7 +418,7 @@ export default function EmployeeProfilePage() {
  value={passData.newPassword}
  onChange={(e) => setPassData({ ...passData, newPassword: e.target.value })}
  required
- className="border-border focus:border-blue-500"
+ className="border-border focus:border-blue-50 dark:border-blue-900/200"
  />
  </div>
  <div className="space-y-2">
@@ -429,7 +429,7 @@ export default function EmployeeProfilePage() {
  value={passData.confirmPassword}
  onChange={(e) => setPassData({ ...passData, confirmPassword: e.target.value })}
  required
- className="border-border focus:border-blue-500"
+ className="border-border focus:border-blue-50 dark:border-blue-900/200"
  />
  </div>
 
