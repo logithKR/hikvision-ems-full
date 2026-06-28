@@ -372,7 +372,7 @@ export default function AdminEmployeesPage() {
  setDeptMemberType(type)
  setDeptMemberForm({
  name:"", email:"", password:"", phone:"",
- position: type === 'hod' ? 'Department Head' :"",
+ position: type === 'hod' ? 'Tech Lead' :"",
  managerId:"",
  hikvisionEmployeeId:""
  })
@@ -407,14 +407,14 @@ export default function AdminEmployeesPage() {
 
  const managers = useMemo(() => {
  return employees.filter(
- (emp) => emp.isManager || emp.isDeptHead
+ (emp) => emp.isManager === true || emp.role === 'manager' || emp.isDeptHead === true
  )
  }, [employees])
 
  // Managers available for manager assignment in the Assign Manager dialog
  const assignableManagers = useMemo(() => {
  return employees.filter(
- (emp) => emp.isManager && !emp.isDeptHead && emp.isActive !== false
+ (emp) => (emp.isManager === true || emp.role === 'manager' || emp.isDeptHead === true) && emp.isActive !== false
  )
  }, [employees])
 
@@ -498,7 +498,7 @@ export default function AdminEmployeesPage() {
 
  const getRoleBadge = (role, emp) => {
  // Check for HOD and Manager flags first
- if (emp?.isDeptHead) return <Badge className="bg-purple-100 text-purple-800 border-purple-200">HOD</Badge>
+ if (emp?.isDeptHead) return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Tech Lead</Badge>
  if (emp?.isManager) return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Manager</Badge>
  switch (role) {
  case"admin":
@@ -520,10 +520,11 @@ export default function AdminEmployeesPage() {
  name: emp.name ||"",
  email: emp.email ||"",
  department: emp.department ||"",
- phone: emp.phone ||"",
- position: emp.position ||"",
- role: emp.role ||"employee",
- hikvisionEmployeeId: emp.hikvisionEmployeeId ||"",
+ phone: emp.phone || "",
+ position: emp.position || "",
+ role: emp.role || "employee",
+ managerId: emp.managerId || "",
+ hikvisionEmployeeId: emp.hikvisionEmployeeId || "",
  })
  updateMutation.reset() // clear any previous error
  setEditDialogOpen(true)
@@ -604,14 +605,9 @@ export default function AdminEmployeesPage() {
  <span className="text-xs text-slate-300">—</span>
  ) : emp.managerId ? (
  <span className="text-sm text-foreground">{getManagerName(emp.managerId)}</span>
- ) : (() => {
- const dept = orgDepartments.find(d => d.id === emp.departmentId)
- return dept?.headName ? (
- <span className="text-sm text-purple-600">{dept.headName} <span className="text-[10px] text-purple-400">(HOD)</span></span>
  ) : (
  <span className="text-xs text-slate-300 italic">Unassigned</span>
- )
- })()}
+ )}
  </TableCell>
 
  {/* Status */}
@@ -862,9 +858,9 @@ export default function AdminEmployeesPage() {
  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-muted-foreground">
  <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {dept.memberCount || 0}/{dept.maxEmployees || '∞'} members</span>
  {dept.headName ? (
- <span className="flex items-center gap-1 text-purple-600 font-medium"><Shield className="h-3 w-3" /> HOD: {dept.headName}</span>
+ <span className="flex items-center gap-1 text-purple-600 font-medium"><Shield className="h-3 w-3" /> Tech Lead: {dept.headName}</span>
  ) : (
- <span className="flex items-center gap-1 text-amber-500"><AlertCircle className="h-3 w-3" /> No HOD</span>
+ <span className="flex items-center gap-1 text-amber-500"><AlertCircle className="h-3 w-3" /> No Tech Lead</span>
  )}
  </div>
  {dept.createdAt && (
@@ -874,7 +870,7 @@ export default function AdminEmployeesPage() {
  <div className="flex gap-2 mt-3">
  {!dept.headId ? (
  <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(dept, 'hod')}>
- <Shield className="h-3 w-3 mr-1" /> Assign HOD
+ <Shield className="h-3 w-3 mr-1" /> Assign Tech Lead
  </Button>
  ) : (
  <>
@@ -987,6 +983,7 @@ export default function AdminEmployeesPage() {
  className="text-muted-foreground hover:text-red-500 gap-1"
  onClick={() => {
  setSearchTerm("")
+ setSearchTerm("")
  setDeptFilter("all")
  setRoleFilter("all")
  setStatusFilter("all")
@@ -1045,7 +1042,7 @@ export default function AdminEmployeesPage() {
  <div className="flex items-center gap-2">
  {!orgDept.headId ? (
  <Button size="sm" variant="outline" className="h-7 text-xs border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(orgDept, 'hod')}>
- <Shield className="h-3 w-3 mr-1" /> Assign HOD
+ <Shield className="h-3 w-3 mr-1" /> Assign Tech Lead
  </Button>
  ) : (
  <>
@@ -1133,9 +1130,10 @@ export default function AdminEmployeesPage() {
  value={editForm.department ||"__none__"}
  onValueChange={(val) => {
  if (val ==="__none__") {
- setEditForm({ ...editForm, department:"" })
+ setEditForm({ ...editForm, department:"", departmentId: null })
  } else {
- setEditForm({ ...editForm, department: val })
+ const selectedDept = orgDepartments.find(d => d.name === val);
+ setEditForm({ ...editForm, department: val, departmentId: selectedDept?.id || null })
  }
  }}
  >
@@ -1307,7 +1305,7 @@ export default function AdminEmployeesPage() {
  Assign Manager
  </DialogTitle>
  <DialogDescription>
- Assign a manager for <strong>{assigningEmployee?.name}</strong>. Only managers and HODs are shown.
+ Assign a manager for <strong>{assigningEmployee?.name}</strong>. Only managers and Tech Leads are shown.
  </DialogDescription>
  </DialogHeader>
  <DialogBody>
@@ -1420,19 +1418,30 @@ export default function AdminEmployeesPage() {
  <div className="space-y-2">
  <Label className="text-sm font-medium text-foreground">Department</Label>
  <div className="relative">
- <Input
- placeholder="e.g. Sales, Engineering"
- value={createForm.department}
- onChange={(e) => setCreateForm({ ...createForm, department: e.target.value })}
- className="border-border focus-visible:ring-blue-500 pl-9"
- list="departments-list"
- />
- <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
- <datalist id="departments-list">
+ <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+ <Select
+ value={createForm.department || "__none__"}
+ onValueChange={(val) => {
+ if (val ==="__none__") {
+ setCreateForm({ ...createForm, department:"", departmentId: null })
+ } else {
+ const selectedDept = orgDepartments.find(d => d.name === val);
+ setCreateForm({ ...createForm, department: val, departmentId: selectedDept?.id || null })
+ }
+ }}
+ >
+ <SelectTrigger className="border-border focus-visible:ring-blue-500 pl-9">
+ <SelectValue placeholder="e.g. Sales, Engineering" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="__none__">
+ <span className="text-muted-foreground italic">No Department</span>
+ </SelectItem>
  {orgDepartments.map((dept) => (
- <option key={dept.id} value={dept.name} />
+ <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
  ))}
- </datalist>
+ </SelectContent>
+ </Select>
  </div>
  </div>
  <div className="space-y-2">
@@ -1498,11 +1507,11 @@ export default function AdminEmployeesPage() {
  <SelectItem value="__unassigned__">
  <div className="flex items-center gap-2">
  <Shield className="h-3 w-3 text-purple-500" />
- <span className="text-purple-700 font-medium">Unassigned (reports to dept HOD)</span>
+ <span className="text-purple-700 font-medium">Unassigned</span>
  </div>
  </SelectItem>
  {employees
- .filter(e => e.isManager && !e.isDeptHead && e.isActive !== false)
+ .filter(e => (e.isManager === true || e.role === 'manager' || e.isDeptHead === true) && e.isActive !== false)
  .map(mgr => (
  <SelectItem key={mgr.uid || mgr.id} value={mgr.uid || mgr.id}>
  <div className="flex items-center gap-2">
@@ -1515,7 +1524,6 @@ export default function AdminEmployeesPage() {
  ))}
  </SelectContent>
  </Select>
- <p className="text-[10px] text-muted-foreground">If unassigned, employee reports to the HOD of their department.</p>
  </div>
 
  {/* Hikvision Device Link */}
@@ -1628,13 +1636,13 @@ export default function AdminEmployeesPage() {
  </DialogContent>
  </Dialog>
 
- {/* ── Add Dept Member (HOD/Manager/Employee) Dialog ── */}
+ {/* ── Add Dept Member (Tech Lead/Manager/Employee) Dialog ── */}
  <Dialog open={deptMemberDialogOpen} onOpenChange={setDeptMemberDialogOpen}>
  <DialogContent className="sm:max-w-lg">
  <DialogHeader>
  <DialogTitle className="flex items-center gap-2">
  {deptMemberType === 'hod' ? <Shield className="h-5 w-5 text-purple-600" /> : <UserPlus className="h-5 w-5 text-blue-600" />}
- Add {deptMemberType === 'hod' ? 'Department Head' : deptMemberType === 'manager' ? 'Manager' : 'Employee'}
+ Add {deptMemberType === 'hod' ? 'Tech Lead' : deptMemberType === 'manager' ? 'Manager' : 'Employee'}
  </DialogTitle>
  <DialogDescription>
  Create a new {deptMemberType} for <strong>{selectedDeptForMember?.name}</strong>.
@@ -1675,7 +1683,7 @@ export default function AdminEmployeesPage() {
  disabled={deptMemberType === 'hod'}
  className="border-border focus-visible:ring-blue-500"
  />
- {deptMemberType === 'hod' && <p className="text-[10px] text-purple-500 font-medium">Locked for HOD role</p>}
+ {deptMemberType === 'hod' && <p className="text-[10px] text-purple-500 font-medium">Locked for Tech Lead role</p>}
  </div>
  <div className="space-y-2">
  <Label className="text-sm font-medium text-foreground">Phone</Label>
@@ -1702,7 +1710,7 @@ export default function AdminEmployeesPage() {
  </div>
  </SelectItem>
  {employees
- .filter(e => e.isManager && e.departmentId === selectedDeptForMember?.id)
+ .filter(e => (e.isManager === true || e.role === 'manager' || e.isDeptHead === true) && e.isActive !== false && e.department === selectedDeptForMember?.name)
  .map(mgr => (
  <SelectItem key={mgr.uid || mgr.id} value={mgr.uid || mgr.id}>
  <div className="flex items-center gap-2">

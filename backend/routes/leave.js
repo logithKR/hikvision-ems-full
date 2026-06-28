@@ -145,7 +145,7 @@ router.post('/bo/:leaveId/approve', authenticateToken, requireBusinessOwner, asy
     }
 
     const result = await leaveService.approveLeave(orgId, leaveId, req.user.uid, comments);
-    res.json({ message: 'HOD leave approved', leave: result });
+    res.json({ message: 'Tech Lead leave approved', leave: result });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -168,7 +168,7 @@ router.post('/bo/:leaveId/reject', authenticateToken, requireBusinessOwner, asyn
     }
 
     const result = await leaveService.rejectLeave(orgId, leaveId, req.user.uid, comments);
-    res.json({ message: 'HOD leave rejected', leave: result });
+    res.json({ message: 'Tech Lead leave rejected', leave: result });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

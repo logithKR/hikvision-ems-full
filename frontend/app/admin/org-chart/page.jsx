@@ -40,7 +40,7 @@ const OrgNode = ({ data, id }) => {
  </div>
  )}
 
- {/* Department Icon / HOD Badge */}
+ {/* Department Icon / Tech Lead Badge */}
  {data.isHod && <div className="absolute top-2 right-8 p-1"><Shield className="h-4 w-4 text-purple-500" /></div>}
 
  <div className="flex items-start gap-3">
@@ -241,7 +241,8 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
  
  <Panel position="bottom-center" className="hidden sm:flex bg-card/90 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-border text-xs text-slate-600 font-medium items-center gap-3">
  <span><kbd className="bg-secondary border border-border rounded px-1.5 py-0.5 font-sans mr-1">Scroll</kbd> to Pan</span>
- <span className="w-1 h-1 rounded-full bg-slate-300" />
+ <span className="w-1 h-1 rounded-full" />
+ <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full mt-1 border border-purple-200">Tech Lead</span>
  <span><kbd className="bg-secondary border border-border rounded px-1.5 py-0.5 font-sans mr-1">Ctrl</kbd> + <kbd className="bg-secondary border border-border rounded px-1.5 py-0.5 font-sans">Scroll</kbd> to Zoom</span>
  </Panel>
  </ReactFlow>
@@ -310,7 +311,7 @@ export default function AdminOrgChartPage() {
  id: `user-${item.hod.id}`,
  type: 'user',
  name: item.hod.name,
- subtitle: item.hod.position || 'Head of Department',
+ subtitle: item.hod.position || 'Tech Lead',
  isHod: true,
  ...item.hod,
  children: []

@@ -240,7 +240,7 @@ function requireTeamLead(req, res, next) {
 
   if (!isAuthorized) {
     return res.status(403).json({
-      error: 'Forbidden: Team Lead / Manager / HOD access required',
+      error: 'Forbidden: Team Lead / Manager access required',
       yourRole: req.user.role
     });
   }
@@ -257,7 +257,7 @@ function requireManagerOrHOD(req, res, next) {
   const isAuthorized = req.user.isDeptHead || req.user.isManager ||
     ['admin', 'business_owner'].includes(req.user.role);
   if (!isAuthorized) {
-    return res.status(403).json({ error: 'Forbidden: Manager or HOD access required' });
+    return res.status(403).json({ error: 'Forbidden: Manager or Tech Lead access required' });
   }
   next();
 }

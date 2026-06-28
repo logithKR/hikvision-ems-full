@@ -68,19 +68,19 @@ class LeaveService {
       }
 
       // 5. Determine approver based on hierarchy
-      // HOD → leave goes to Business Owner
+      // Tech Lead → leave goes to Business Owner
       // Manager/Employee → leave goes to their Department Head
       let approverId = null;
       let approverName = null;
 
       if (user.isDeptHead) {
-        // HOD's leave goes to Business Owner
+        // Tech Lead's leave goes to Business Owner
         const boUsers = await this.userRepo.findByRole(orgId, 'business_owner');
         if (boUsers.length > 0) {
           approverId = boUsers[0].id;
           approverName = boUsers[0].name;
         }
-        console.log(`🔀 HOD leave routed to Business Owner: ${approverId}`);
+        console.log(`🔀 Tech Lead leave routed to Business Owner: ${approverId}`);
       } else if (user.departmentId) {
         // Employee/Manager → find their Dept Head
         const deptHead = await this.userRepo.getDeptHead(orgId, user.departmentId);
@@ -88,7 +88,7 @@ class LeaveService {
           approverId = deptHead.id;
           approverName = deptHead.name;
         }
-        console.log(`🔀 Employee/Manager leave routed to HOD: ${approverId}`);
+        console.log(`🔀 Employee/Manager leave routed to Tech Lead: ${approverId}`);
       }
 
       // 6. Create leave request
@@ -783,10 +783,10 @@ class LeaveService {
   }
 
   /**
-   * Get pending leaves for an HOD (leaves where they are the approver)
+   * Get pending leaves for a Tech Lead (leaves where they are the approver)
    * @param {string} orgId - Organization ID
-   * @param {string} hodId - Department Head user ID
-   * @returns {Promise<Array>} Pending leaves addressed to this HOD
+   * @param {string} hodId - Tech Lead user ID
+   * @returns {Promise<Array>} Pending leaves addressed to this Tech Lead
    */
   async getDeptPendingLeaves(orgId, hodId) {
     const leaves = await this.leaveRepo.findByApprover(orgId, hodId, { status: 'pending' });
@@ -794,7 +794,7 @@ class LeaveService {
   }
 
   /**
-   * Get leave history for an HOD
+   * Get leave history for a Tech Lead
    * @param {string} orgId - Organization ID
    * @param {string} hodId - Department Head user ID
    * @returns {Promise<Array>} Approved/rejected leaves

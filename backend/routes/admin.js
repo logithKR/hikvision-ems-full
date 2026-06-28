@@ -812,11 +812,11 @@ router.post('/departments/:id/hod', authenticateToken, requireAdmin, async (req,
 
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Department Head', isDeptHead: true, role: 'employee', phone, hikvisionEmployeeId: hikvisionEmployeeId || null },
+      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Tech Lead', isDeptHead: true, role: 'employee', phone, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId, creatorRole
     );
 
-    res.status(201).json({ message: 'Department Head created', employee });
+    res.status(201).json({ message: 'Tech Lead created', employee });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -838,7 +838,7 @@ router.post('/departments/:id/employees', authenticateToken, requireAdmin, async
 
     const dept = await departmentRepo.findById(organizationId, deptId);
     if (!dept) return res.status(404).json({ error: 'Department not found' });
-    if (!dept.headId) return res.status(400).json({ error: 'Create a Department Head first before adding employees' });
+    if (!dept.headId) return res.status(400).json({ error: 'Create a Tech Lead first before adding employees' });
 
     // Check member limit
     const limit = await departmentRepo.checkMemberLimit(organizationId, deptId);
@@ -872,7 +872,7 @@ router.post('/departments/:id/managers', authenticateToken, requireAdmin, async 
 
     const dept = await departmentRepo.findById(organizationId, deptId);
     if (!dept) return res.status(404).json({ error: 'Department not found' });
-    if (!dept.headId) return res.status(400).json({ error: 'Create a Department Head first' });
+    if (!dept.headId) return res.status(400).json({ error: 'Create a Tech Lead first' });
 
     const limit = await departmentRepo.checkMemberLimit(organizationId, deptId);
     if (!limit.canAdd) return res.status(400).json({ error: `Department has reached max capacity (${limit.max})` });
