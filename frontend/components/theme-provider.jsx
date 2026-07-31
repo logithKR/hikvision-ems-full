@@ -10,7 +10,7 @@ const ThemeProviderContext = createContext(initialState)
 export function ThemeProvider({
  children,
  defaultTheme ="light",
- storageKey ="ems-ui-theme",
+ storageKey ="ems-ui-theme-v2",
  ...props
 }) {
  const [theme, setTheme] = useState(
@@ -22,17 +22,16 @@ export function ThemeProvider({
 
  root.classList.remove("light","dark")
 
- if (theme ==="system") {
- const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
- .matches
- ?"dark"
- :"light"
+  const resolvedTheme = theme === "system" 
+    ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : theme;
 
- root.classList.add(systemTheme)
- return
- }
+  root.classList.add(resolvedTheme);
 
- root.classList.add(theme)
+  const favicon = document.getElementById("dynamic-favicon");
+  if (favicon) {
+    favicon.href = resolvedTheme === "dark" ? "/favicon-dark.png" : "/favicon-light.png";
+  }
  }, [theme])
 
  const value = {

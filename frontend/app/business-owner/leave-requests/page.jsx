@@ -189,7 +189,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
  <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-slate-50 flex items-center gap-2">
  <Crown className="h-6 w-6 text-blue-500" /> Leave Management
  </h1>
- <p className="text-muted-foreground mt-1">Approve Department Head leaves and monitor organization status</p>
+ <p className="text-muted-foreground mt-1">Approve Tech Lead leaves and monitor organization status</p>
  </div>
  <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries()} className="gap-2">
  <RefreshCw className="h-4 w-4" /> Refresh
@@ -220,7 +220,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
  <div className="flex flex-col items-center text-center">
  <CheckCircle2 className="h-12 w-12 text-emerald-500/50 mb-4" />
  <h3 className="text-lg font-semibold">All Caught Up!</h3>
- <p className="text-muted-foreground">No pending leave requests from Department Heads.</p>
+ <p className="text-muted-foreground">No pending leave requests from Tech Leads.</p>
  </div>
  </Card>
  ) : (
@@ -236,7 +236,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
  <div>
  <CardTitle className="text-base">{leave.userName}</CardTitle>
  <CardDescription className="flex items-center gap-1 text-xs">
- <Crown className="w-3 h-3 text-blue-500" /> Department Head
+ <Crown className="w-3 h-3 text-blue-500" /> Tech Lead
  </CardDescription>
  </div>
  </div>
@@ -316,7 +316,7 @@ export default function BusinessOwnerLeaveRequestsPage() {
  <TableCell className="font-medium">{leave.userName}</TableCell>
  <TableCell>
  {leave.userRole === 'dept_head' ?
- <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">HOD</Badge> :
+ <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">Tech Lead</Badge> :
  <Badge variant="outline" className="text-[10px]">Employee</Badge>
  }
  </TableCell>
