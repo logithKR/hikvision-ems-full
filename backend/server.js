@@ -120,6 +120,8 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/system-admin', systemAdminRoutes);
+const backupRoutes = require('./routes/backup');
+app.use('/api/system-admin', backupRoutes);
 
 // Fallbacks for aggressive reverse proxies (like Nginx with trailing slash)
 app.use('/auth', authRoutes);

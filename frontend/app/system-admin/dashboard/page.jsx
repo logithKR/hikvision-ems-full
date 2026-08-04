@@ -273,7 +273,7 @@ export default function SystemAdminDashboardPage() {
  ) : (
  <div className="space-y-4">
  {organizations.slice(0, 5).map((org) => (
- <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-background/50 rounded-lg border hover:border-blue-200 transition-all gap-3">
+ <div key={org.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-background/50 rounded-lg border hover:border-blue-200 transition-all gap-3">
  <div className="flex items-center gap-4">
  <div className={`p-2 rounded-lg ${org.isActive ? 'bg-green-100 dark:bg-green-950/30' : 'bg-gray-100 dark:bg-gray-800'}`}>
  <Building2 className={`h-5 w-5 ${org.isActive ? 'text-green-600' : 'text-gray-400'}`} />

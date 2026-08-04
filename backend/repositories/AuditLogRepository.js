@@ -32,7 +32,7 @@ class AuditLogRepository extends BaseRepository {
      */
     async create(logData) {
         try {
-            const docRef = this.collection.doc();
+            const docRef = this.getCollection().doc();
             const timestamp = new Date().toISOString();
 
             const logEntry = {
@@ -69,7 +69,7 @@ class AuditLogRepository extends BaseRepository {
      */
     async findByOrganization(organizationId, options = {}) {
         try {
-            let query = this.collection.where('organizationId', '==', organizationId);
+            let query = this.getCollection().where('organizationId', '==', organizationId);
 
             // Sort by timestamp desc (requires index)
             // query = query.orderBy('timestamp', 'desc');

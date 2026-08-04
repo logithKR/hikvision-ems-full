@@ -14,7 +14,8 @@ import {
  LogOut,
  Menu,
  X,
- Server
+ Server,
+ Database
 } from"lucide-react"
 import { getCurrentUser, isAuthenticated, logoutUser } from"@/lib/auth"
 import { cn } from"@/lib/utils"
@@ -66,18 +67,23 @@ export default function SystemAdminLayout({ children }) {
 
  const navLinks = [
  {
- href:"/system-admin/dashboard",
- label:"Dashboard",
+ href: "/system-admin/dashboard",
+ label: "Dashboard",
  icon: LayoutDashboard,
  },
  {
- href:"/system-admin/organizations",
- label:"Organizations",
+ href: "/system-admin/organizations",
+ label: "Organizations",
  icon: Building2,
  },
  {
- href:"/system-admin/profile",
- label:"My Profile",
+ href: "/system-admin/backup",
+ label: "Backup & Recovery",
+ icon: Database,
+ },
+ {
+ href: "/system-admin/profile",
+ label: "My Profile",
  icon: User,
  },
  ]

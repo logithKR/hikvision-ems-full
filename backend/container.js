@@ -33,6 +33,7 @@ const StatisticsService = require('./services/StatisticsService');
 
 const AuditLogService = require('./services/AuditLogService');
 const NotificationService = require('./services/NotificationService');
+const BackupService = require('./services/BackupService');
 
 /**
  * Container Class
@@ -109,6 +110,9 @@ class Container {
     );
     console.log('✅ StatisticsService initialized');
 
+    this.backupService = new BackupService(this.db, this.auditLogService);
+    console.log('✅ BackupService initialized');
+
     console.log('🎉 Container initialization complete!');
   }
 
@@ -174,6 +178,14 @@ class Container {
    */
   getAuditLogService() {
     return this.auditLogService;
+  }
+
+  /**
+   * Get BackupService instance
+   * @returns {BackupService}
+   */
+  getBackupService() {
+    return this.backupService;
   }
 
   // ========================================

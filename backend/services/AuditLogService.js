@@ -35,7 +35,7 @@ class AuditLogService {
             ipAddress
         } = params;
 
-        if (!organizationId || !actor || !action) {
+        if (!actor || !action || (!organizationId && organizationId !== 'system')) {
             console.warn('⚠️ [AuditLogService] Missing required fields for log');
             return;
         }

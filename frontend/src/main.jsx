@@ -25,7 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
  <QueryClientProvider client={queryClient}>
  <AuthProvider>
  <SocketProvider>
- <ThemeProvider defaultTheme="system" storageKey="ems-ui-theme">
+ <ThemeProvider defaultTheme="light" storageKey="ems-ui-theme-v3">
  <App />
  </ThemeProvider>
  </SocketProvider>

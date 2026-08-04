@@ -19,3 +19,4 @@ yarn.lock
 # Misc
 .DS_Store
 *.log
+backups/

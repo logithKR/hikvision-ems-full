@@ -40,6 +40,7 @@ import BOProfilePage from '@/app/business-owner/profile/page'
 // System Admin Pages
 import SADashboardPage from '@/app/system-admin/dashboard/page'
 import SAOrganizationsPage from '@/app/system-admin/organizations/page'
+import SABackupPage from '@/app/system-admin/backup/page'
 import SAProfilePage from '@/app/system-admin/profile/page'
 
 export default function App() {
@@ -89,6 +90,7 @@ export default function App() {
  <Route path="/system-admin" element={<SystemAdminLayout />}>
  <Route path="dashboard" element={<SADashboardPage />} />
  <Route path="organizations" element={<SAOrganizationsPage />} />
+ <Route path="backup" element={<SABackupPage />} />
  <Route path="profile" element={<SAProfilePage />} />
  <Route index element={<Navigate to="dashboard" replace />} />
  </Route>
