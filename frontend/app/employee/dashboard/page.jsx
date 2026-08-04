@@ -411,7 +411,6 @@ export default function EmployeeDashboardPage() {
  {[
  { icon: <Building className="h-3 w-3 text-muted-foreground" />, label: 'Department', value: profile?.department },
  { icon: <Briefcase className="h-3 w-3 text-muted-foreground" />, label: 'Position', value: profile?.position },
- { icon: <Users className="h-3 w-3 text-muted-foreground" />, label: 'Reports To', value: profile?.managerName },
  { icon: <User className="h-3 w-3 text-muted-foreground" />, label: 'Email', value: profile?.email },
  { icon: <Activity className="h-3 w-3 text-muted-foreground" />, label: 'Device ID', value: profile?.hikvisionEmployeeId },
  ].map(({ icon, label, value }) => value ? (

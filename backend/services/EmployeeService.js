@@ -87,8 +87,6 @@ class EmployeeService {
         departmentId: employeeData.departmentId || null,
         position: employeeData.position || (targetRole === 'admin' ? 'Admin' : 'Employee'),
         isDeptHead: employeeData.isDeptHead || false,
-        isManager: employeeData.isManager || false,
-        managerId: employeeData.managerId || null,
         salary: employeeData.salary || '0',
         workingType: employeeData.workingType || 'full-time',
         skills: employeeData.skills || '',
@@ -105,16 +103,6 @@ class EmployeeService {
         // If this is a dept head, update the department record
         if (employeeData.isDeptHead) {
           await this.deptRepo.setHead(orgId, employeeData.departmentId, employee.id, employee.name);
-        }
-      }
-
-      // 6b. Assign manager relationship if managerId is provided
-      if (employeeData.managerId) {
-        try {
-          await this.userRepo.assignManager(orgId, employee.id, employeeData.managerId);
-          console.log(`✅ Auto-assigned manager ${employeeData.managerId} for employee ${employee.id}`);
-        } catch (err) {
-          console.warn(`⚠️ Failed to auto-assign manager: ${err.message}`);
         }
       }
 
@@ -144,54 +132,6 @@ class EmployeeService {
     }
   }
 
-  /**
-   * Promote an employee to manager
-   * @param {string} orgId
-   * @param {string} userId
-   * @returns {Promise<Object>}
-   */
-  async promoteToManager(orgId, userId) {
-    const user = await this.userRepo.findById(orgId, userId);
-    if (!user) throw new Error('User not found');
-    if (user.isDeptHead) throw new Error('A department head cannot also be a manager');
-    if (user.isManager) throw new Error('User is already a manager');
-
-    const updated = await this.userRepo.update(orgId, userId, {
-      isManager: true,
-      isTeamLead: true
-    });
-    const { passwordHash: _, ...safe } = updated;
-    return safe;
-  }
-
-  /**
-   * Demote a manager back to employee
-   * @param {string} orgId
-   * @param {string} userId
-   * @returns {Promise<Object>}
-   */
-  async demoteFromManager(orgId, userId) {
-    const user = await this.userRepo.findById(orgId, userId);
-    if (!user) throw new Error('User not found');
-    if (!user.isManager) throw new Error('User is not a manager');
-
-    // Remove all direct reports from this manager
-    const directReports = user.directReports || [];
-    for (const reportId of directReports) {
-      await this.userRepo.update(orgId, reportId, {
-        managerId: null,
-        managerName: null
-      });
-    }
-
-    const updated = await this.userRepo.update(orgId, userId, {
-      isManager: false,
-      isTeamLead: user.isDeptHead, // keep isTeamLead if they're a dept head
-      directReports: []
-    });
-    const { passwordHash: _, ...safe } = updated;
-    return safe;
-  }
 
   /**
    * Get department members (for HOD view)
@@ -372,20 +312,6 @@ class EmployeeService {
       // Safe role access
       const userRole = employee.role || 'employee';
 
-      // NEW: Cascade cleanup before deletion
-      // 1. Unassign all direct reports from this manager
-      const directReports = employee.directReports || [];
-      if (directReports.length > 0) {
-        for (const reportId of directReports) {
-          await this.userRepo.update(orgId, reportId, {
-            managerId: null,
-            managerName: null
-          });
-        }
-        // Clear the manager's own directReports array
-        await this.userRepo.update(orgId, employeeId, { directReports: [] });
-        console.log(`🔄 Unassigned ${directReports.length} direct reports from ${employee.name}`);
-      }
 
       // 2. If this employee is a Dept Head, clear the department's headId
       if (employee.isDeptHead && employee.departmentId && this.deptRepo) {
@@ -740,64 +666,6 @@ class EmployeeService {
     } catch (error) {
       console.error(`❌ EmployeeService: Error getting employee stats:`, error);
       throw new Error(`Failed to get employee stats: ${error.message}`);
-    }
-  }
-  /**
-   * Assign a manager to an employee
-   * @param {string} orgId - Organization ID
-   * @param {string} employeeId - Employee ID
-   * @param {string} managerId - Manager ID (or null to unassign)
-   * @param {string} assignedBy - Admin user ID performing the assignment
-   * @returns {Promise<Object>} Updated employee
-   */
-  async assignManager(orgId, employeeId, managerId, assignedBy) {
-    console.log(`👥 EmployeeService.assignManager() - Employee: ${employeeId}, Manager: ${managerId}`);
-
-    try {
-      // Validate employee exists
-      const employee = await this.userRepo.findById(orgId, employeeId);
-      if (!employee) {
-        throw new Error('Employee not found');
-      }
-
-      // If assigning a manager, validate manager exists
-      let managerName = null;
-      if (managerId) {
-        if (managerId === employeeId) {
-          throw new Error('Cannot assign user as their own manager');
-        }
-        const manager = await this.userRepo.findById(orgId, managerId);
-        if (!manager) {
-          throw new Error('Manager not found');
-        }
-        managerName = manager.name;
-      }
-
-      // Perform assignment
-      const updatedEmployee = await this.userRepo.assignManager(orgId, employeeId, managerId);
-
-      // Audit Log
-      if (this.auditService) {
-        await this.auditService.log({
-          organizationId: orgId,
-          actor: { uid: assignedBy, name: 'Admin', role: 'admin' }, // TODO: Better actor info
-          action: 'EMPLOYEE_ASSIGN_MANAGER',
-          targetId: employeeId,
-          targetType: 'employee',
-          details: {
-            managerId,
-            managerName,
-            previousManager: employee.managerId
-          }
-        });
-      }
-
-      // Remove password hash
-      const { passwordHash, ...safeEmployee } = updatedEmployee;
-      return safeEmployee;
-    } catch (error) {
-      console.error(`❌ EmployeeService: Error assigning manager:`, error);
-      throw new Error(`Failed to assign manager: ${error.message}`);
     }
   }
 }

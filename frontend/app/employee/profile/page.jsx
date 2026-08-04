@@ -37,8 +37,7 @@ export default function EmployeeProfilePage() {
  department:"",
  hireDate:"",
  salary:"",
- managerName:"",
- managerEmail:"",
+
  hikvisionEmployeeId:""
  })
 
@@ -87,8 +86,7 @@ export default function EmployeeProfilePage() {
  department: user.department ||"General",
  hireDate: user.createdAt ||"",
  salary: user.salary ? `₹${user.salary.toLocaleString()}` :"Not specified",
- managerName: user.managerName ||"",
- managerEmail: user.managerEmail ||"",
+
  hikvisionEmployeeId: user.hikvisionEmployeeId ||""
  })
  }
@@ -238,24 +236,7 @@ export default function EmployeeProfilePage() {
  </div>
  <span className="text-foreground">Joined {profileData.hireDate && !isNaN(new Date(profileData.hireDate).getTime()) ? format(new Date(profileData.hireDate),"MMM yyyy") :"N/A"}</span>
  </div>
- {profileData.managerName && (
- <div className="flex flex-col space-y-2 mt-4 pt-4 border-t border-border">
- <div className="flex items-center gap-3 text-sm">
- <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
- <UserCog className="h-4 w-4" />
- </div>
- <span className="text-foreground">Manager: <strong>{profileData.managerName}</strong></span>
- </div>
- {profileData.managerEmail && (
- <div className="flex items-center gap-3 text-sm ml-1">
- <div className="w-8 flex justify-center">
- <Mail className="h-3.5 w-3.5 text-muted-foreground" />
- </div>
- <span className="text-xs text-muted-foreground truncate">{profileData.managerEmail}</span>
- </div>
- )}
- </div>
- )}
+
  </div>
  </CardContent>
  </Card>
@@ -350,23 +331,7 @@ export default function EmployeeProfilePage() {
  </span>
  </div>
  </div>
- {profileData.managerName && (
- <div className="space-y-4 md:col-span-2">
- <Label>Reporting Manager</Label>
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="flex items-center px-3 py-2 border border-border rounded-md bg-background text-muted-foreground">
- <UserCog className="h-4 w-4 mr-2" />
- <span className="truncate">{profileData.managerName}</span>
- </div>
- {profileData.managerEmail && (
- <div className="flex items-center px-3 py-2 border border-border rounded-md bg-background text-muted-foreground">
- <Mail className="h-4 w-4 mr-2" />
- <span className="truncate">{profileData.managerEmail}</span>
- </div>
- )}
- </div>
- </div>
- )}
+
  </div>
 
  <div className="flex justify-end pt-4">

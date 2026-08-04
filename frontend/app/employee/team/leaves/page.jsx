@@ -207,7 +207,7 @@ export default function TeamLeavesPage() {
  <div>
  <CardTitle className="text-base">{leave.userName}</CardTitle>
  <CardDescription className="text-xs flex items-center gap-1">
- <User className="w-3 h-3" /> {leave.userRole === 'manager' ? 'Manager' : 'Team Member'}
+ <User className="w-3 h-3" /> Team Member
  </CardDescription>
  </div>
  </div>

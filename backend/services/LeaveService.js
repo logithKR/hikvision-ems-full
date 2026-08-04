@@ -69,7 +69,7 @@ class LeaveService {
 
       // 5. Determine approver based on hierarchy
       // Tech Lead → leave goes to Business Owner
-      // Manager/Employee → leave goes to their Department Head
+      // Employee → leave goes to their Department Head
       let approverId = null;
       let approverName = null;
 
@@ -82,13 +82,13 @@ class LeaveService {
         }
         console.log(`🔀 Tech Lead leave routed to Business Owner: ${approverId}`);
       } else if (user.departmentId) {
-        // Employee/Manager → find their Dept Head
+        // Employee → find their Dept Head
         const deptHead = await this.userRepo.getDeptHead(orgId, user.departmentId);
         if (deptHead) {
           approverId = deptHead.id;
           approverName = deptHead.name;
         }
-        console.log(`🔀 Employee/Manager leave routed to Tech Lead: ${approverId}`);
+        console.log(`🔀 Employee leave routed to Tech Lead: ${approverId}`);
       }
 
       // 6. Create leave request
@@ -126,7 +126,7 @@ class LeaveService {
 
       // Notification
       if (this.notificationService) {
-        // If manager exists, notify them. Otherwise notify admins.
+        // If approver exists, notify them. Otherwise notify admins.
         if (leave.approverId) {
           this.notificationService.sendToUser(leave.approverId, 'leave:created', {
             leaveId: leave.id,
@@ -806,12 +806,9 @@ class LeaveService {
     let memberIds = [];
 
     if (user.isDeptHead && user.departmentId) {
-      // HOD: get all department members
+      // Tech Lead: get all department members
       const members = await this.userRepo.findByDepartment(orgId, user.departmentId);
       memberIds = members.map(m => m.id).filter(id => id !== hodId);
-    } else {
-      // Manager: get direct reports
-      memberIds = user.directReports || [];
     }
 
     if (memberIds.length === 0) return [];

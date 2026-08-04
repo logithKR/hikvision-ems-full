@@ -323,17 +323,14 @@ class AttendanceService {
    */
   async getTeamAttendance(orgId, leaderId, date) {
     try {
-      // 1. Get team members (dept members for HOD, direct reports for managers)
+      // 1. Get team members (dept members for Tech Lead)
       if (!this.userRepo) throw new Error('UserRepository not injected');
       const leader = await this.userRepo.findById(orgId, leaderId);
-      let teamMembers;
+      let teamMembers = [];
       if (leader && leader.isDeptHead && leader.departmentId) {
-        // HOD: get all department members (excluding self)
+        // Tech Lead: get all department members (excluding self)
         teamMembers = await this.userRepo.findByDepartment(orgId, leader.departmentId);
         teamMembers = teamMembers.filter(m => m.id !== leaderId);
-      } else {
-        // Manager: get direct reports only
-        teamMembers = await this.userRepo.getDirectReports(orgId, leaderId);
       }
 
       // 2. Get attendance for each member

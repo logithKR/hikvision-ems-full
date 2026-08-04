@@ -1,9 +1,8 @@
 /**
  * team.js
  * 
- * Routes for Team Lead / Manager / HOD management.
+ * Routes for Team Lead / HOD management.
  * HODs can view dept members/attendance and approve/reject dept leaves.
- * Managers can view their direct reports and attendance.
  */
 
 const express = require('express');
@@ -20,12 +19,12 @@ const leaveService = container.getLeaveService();
 router.use(authenticateToken, requireTeamLead);
 
 // ============================================
-// TEAM MEMBER ROUTES (Manager + HOD)
+// TEAM MEMBER ROUTES (HOD)
 // ============================================
 
 /**
  * GET /api/team/members
- * Get direct reports (for managers) or dept members (for HOD)
+ * Get dept members (for HOD)
  */
 router.get('/members', async (req, res) => {
     try {
@@ -38,9 +37,6 @@ router.get('/members', async (req, res) => {
             // HOD: get all department members
             members = await userRepo.findByDepartment(organizationId, user.departmentId);
             members = members.filter(m => m.id !== uid); // exclude self
-        } else {
-            // Manager: get direct reports
-            members = await userRepo.getDirectReports(organizationId, uid);
         }
 
         const safeMembers = members.map(m => {
@@ -56,7 +52,7 @@ router.get('/members', async (req, res) => {
 });
 
 // ============================================
-// ATTENDANCE ROUTES (Manager + HOD)
+// ATTENDANCE ROUTES (HOD)
 // ============================================
 
 /**

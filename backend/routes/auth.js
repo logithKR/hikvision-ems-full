@@ -594,18 +594,6 @@ router.get('/profile', authenticateToken, async (req, res) => {
       });
     }
 
-    // NEW: Fetch manager email if managerId exists
-    if (user.managerId) {
-      try {
-        const manager = await userRepo.findById(userOrgId, user.managerId);
-        if (manager) {
-          user.managerEmail = manager.email;
-        }
-      } catch (e) {
-        console.error('Error fetching manager for email:', e.message);
-      }
-    }
-
     // Remove password
     const { passwordHash, ...userWithoutPassword } = user;
 

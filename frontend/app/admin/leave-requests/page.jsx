@@ -80,8 +80,7 @@ export default function AdminLeaveRequestsPage() {
 
  const getRoleBadge = (role) => {
  switch (role) {
- case 'dept_head': return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"><Crown className="w-3 h-3 mr-1" /> Tech Lead</Badge>
- case 'manager': return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px]"><Briefcase className="w-3 h-3 mr-1" /> Manager</Badge>
+ case 'team_lead': return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"><Star className="w-3 h-3 mr-1" /> Tech Lead</Badge>
  default: return <Badge variant="outline" className="text-[10px]"><User className="w-3 h-3 mr-1" /> Employee</Badge>
  }
  }
@@ -121,7 +120,7 @@ export default function AdminLeaveRequestsPage() {
  <Card>
  <CardHeader>
  <CardTitle>Organization Leave History</CardTitle>
- <CardDescription>All leave requests from employees, managers, and department heads.</CardDescription>
+ <CardDescription>All leave requests from employees and department heads.</CardDescription>
  </CardHeader>
  <CardContent>
  <div className="overflow-x-auto mobile-table-scroll rounded-md border">

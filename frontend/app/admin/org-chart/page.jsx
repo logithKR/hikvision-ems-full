@@ -168,8 +168,8 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
  profileImageUrl: node.profileImageUrl,
  employeeId: node.employeeId,
  isActive: node.isActive,
- bgColor: node.type === 'org' ? 'bg-blue-100 dark:bg-blue-900/40' : node.type === 'dept' ? 'bg-slate-100 dark:bg-slate-800' : node.isHod ? 'bg-purple-100 dark:bg-purple-900/40' : node.isManager ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'bg-secondary',
- textColor: node.type === 'org' ? 'text-blue-700 dark:text-blue-300' : node.type === 'dept' ? 'text-slate-700 dark:text-slate-300' : node.isHod ? 'text-purple-700 dark:text-purple-300' : node.isManager ? 'text-indigo-700 dark:text-indigo-300' : 'text-foreground',
+ bgColor: node.type === 'org' ? 'bg-blue-100 dark:bg-blue-900/40' : node.type === 'dept' ? 'bg-slate-100 dark:bg-slate-800' : node.isHod ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-secondary',
+ textColor: node.type === 'org' ? 'text-blue-700 dark:text-blue-300' : node.type === 'dept' ? 'text-slate-700 dark:text-slate-300' : node.isHod ? 'text-purple-700 dark:text-purple-300' : 'text-foreground',
  isExpanded,
  hasChildren,
  isMatch,
@@ -319,25 +319,7 @@ export default function AdminOrgChartPage() {
  deptNode.children.push(deptHeadNode)
  }
 
- // Managers (Level 3)
- const managersList = item.managers.map(mgr => ({
- id: `user-${mgr.id}`,
- type: 'user',
- name: mgr.name,
- subtitle: mgr.position || 'Manager',
- isManager: true,
- ...mgr,
- children: (mgr.teamMembers || []).map(tm => ({
- id: `user-${tm.id}`,
- type: 'user',
- name: tm.name,
- subtitle: tm.position || 'Team Member',
- ...tm,
- children: []
- }))
- }))
-
- // Regular Employees without managers (Level 3)
+ // Regular Employees (Level 3)
  const employeesList = item.employees.map(emp => ({
  id: `user-${emp.id}`,
  type: 'user',
@@ -347,11 +329,11 @@ export default function AdminOrgChartPage() {
  children: []
  }))
 
- // Attach managers and employees to the HOD if they exist, otherwise directly to Department
+ // Attach employees to the HOD if they exist, otherwise directly to Department
  if (deptHeadNode) {
- deptHeadNode.children = [...managersList, ...employeesList]
+ deptHeadNode.children = [...employeesList]
  } else {
- deptNode.children = [...managersList, ...employeesList]
+ deptNode.children = [...employeesList]
  }
 
  root.children.push(deptNode)

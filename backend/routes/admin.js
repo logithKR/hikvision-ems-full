@@ -60,7 +60,7 @@ router.post('/employees', authenticateToken, requireAdminOrBusinessOwner, async 
     // Create user (quota validation and permission check happens in service)
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department, departmentId: req.body.departmentId, position, salary, workingType, skills, address, emergencyContact, phone, role: targetRole, isDeptHead: req.body.isDeptHead || false, isManager: req.body.isManager || false, managerId: req.body.managerId || null, hikvisionEmployeeId: hikvisionEmployeeId || null },
+      { name, email, password, department, departmentId: req.body.departmentId, position, salary, workingType, skills, address, emergencyContact, phone, role: targetRole, isDeptHead: req.body.isDeptHead || false, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId,
       creatorRole
     );
@@ -263,29 +263,6 @@ router.delete('/employees/:id', authenticateToken, requireAdminOrBusinessOwner, 
   }
 });
 
-/**
- * ASSIGN MANAGER (ADMIN ONLY)
- * PUT /api/admin/employees/:id/assign-manager
- */
-router.put('/employees/:id/assign-manager', authenticateToken, requireAdmin, async (req, res) => {
-  console.log(`👥 PUT /api/admin/employees/${req.params.id}/assign-manager`);
-  try {
-    const { organizationId, uid: adminId } = req.user;
-    const { id } = req.params;
-    const { managerId } = req.body; // Can be null to unassign
-
-    const updatedEmployee = await employeeService.assignManager(organizationId, id, managerId, adminId);
-
-    res.json({
-      message: 'Manager assigned successfully',
-      employee: updatedEmployee
-    });
-
-  } catch (error) {
-    console.error('❌ Error assigning manager:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 /**
  * RESTORE Employee (ADMIN ONLY)
@@ -846,7 +823,7 @@ router.post('/departments/:id/employees', authenticateToken, requireAdmin, async
 
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Employee', role: 'employee', phone, managerId: req.body.managerId || dept.headId || null, hikvisionEmployeeId: hikvisionEmployeeId || null },
+      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Employee', role: 'employee', phone, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId, creatorRole
     );
 
@@ -856,91 +833,6 @@ router.post('/departments/:id/employees', authenticateToken, requireAdmin, async
   }
 });
 
-/**
- * CREATE Manager in Department
- * POST /api/admin/departments/:id/managers
- */
-router.post('/departments/:id/managers', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { organizationId, uid: creatorId, role: creatorRole } = req.user;
-    const deptId = req.params.id;
-    const { name, email, password, position, phone, hikvisionEmployeeId } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required' });
-    }
-
-    const dept = await departmentRepo.findById(organizationId, deptId);
-    if (!dept) return res.status(404).json({ error: 'Department not found' });
-    if (!dept.headId) return res.status(400).json({ error: 'Create a Tech Lead first' });
-
-    const limit = await departmentRepo.checkMemberLimit(organizationId, deptId);
-    if (!limit.canAdd) return res.status(400).json({ error: `Department has reached max capacity (${limit.max})` });
-
-    const employee = await employeeService.createEmployee(
-      organizationId,
-      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Manager', isManager: true, role: 'employee', phone, managerId: dept.headId || null, hikvisionEmployeeId: hikvisionEmployeeId || null },
-      creatorId, creatorRole
-    );
-
-    res.status(201).json({ message: 'Manager created in department', employee });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * PROMOTE Employee to Manager
- * PUT /api/admin/employees/:id/promote-manager
- */
-router.put('/employees/:id/promote-manager', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { organizationId } = req.user;
-    const employee = await employeeService.promoteToManager(organizationId, req.params.id);
-    res.json({ message: 'Employee promoted to Manager', employee });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * DEMOTE Manager to Employee
- * PUT /api/admin/employees/:id/demote-manager
- */
-router.put('/employees/:id/demote-manager', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { organizationId } = req.user;
-    const employee = await employeeService.demoteFromManager(organizationId, req.params.id);
-    res.json({ message: 'Manager demoted to Employee', employee });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * ADD Team Member to Manager
- * PUT /api/admin/employees/:managerId/add-team-member
- */
-router.put('/employees/:managerId/add-team-member', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { organizationId } = req.user;
-    const { managerId } = req.params;
-    const { employeeId } = req.body;
-
-    if (!employeeId) return res.status(400).json({ error: 'employeeId is required' });
-
-    // Validate: target cannot be a manager
-    const target = await userRepo.findById(organizationId, employeeId);
-    if (!target) return res.status(404).json({ error: 'Employee not found' });
-    if (target.isManager) return res.status(400).json({ error: 'A manager cannot be added to another manager\'s team' });
-
-    const updated = await userRepo.assignManager(organizationId, employeeId, managerId);
-    const { passwordHash, ...safe } = updated;
-    res.json({ message: 'Team member added', employee: safe });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 /**
  * ORG CHART Data
@@ -973,35 +865,13 @@ router.get('/org-chart', authenticateToken, requireAdminOrBusinessOwner, async (
       const hod = deptMembers.find(u => u.isDeptHead);
       if (hod) assignedUserIds.add(hod.id);
 
-      // Only grab managers that haven't already been claimed (e.g. as HOD)
-      const managers = deptMembers.filter(u => u.isManager && !assignedUserIds.has(u.id));
-      
-      const formattedManagers = managers.map(m => {
-        assignedUserIds.add(m.id);
-        
-        const directReports = (m.directReports || []).map(rid => {
-          const r = allUsers.find(u => u.id === rid);
-          // CRITICAL FIX: If user is missing OR already claimed somewhere else in the hierarchy, skip them to prevent duplicate nodes.
-          if (!r || assignedUserIds.has(r.id)) return null;
-          
-          assignedUserIds.add(r.id);
-          return formatUser(r);
-        }).filter(Boolean);
-
-        return {
-          ...formatUser(m),
-          teamMembers: directReports
-        };
-      });
-
-      // Department employees are those who haven't been assigned as HOD, Manager, or a Direct Report
+      // Department employees are those who haven't been assigned as HOD
       const employees = deptMembers.filter(u => !assignedUserIds.has(u.id));
       employees.forEach(e => assignedUserIds.add(e.id));
 
       return {
         department: { id: dept.id, name: dept.name, maxEmployees: dept.maxEmployees, memberCount: dept.memberCount },
         hod: formatUser(hod),
-        managers: formattedManagers,
         employees: employees.map(e => formatUser(e))
       };
     });

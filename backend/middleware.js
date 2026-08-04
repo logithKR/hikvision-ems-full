@@ -127,10 +127,7 @@ async function authenticateToken(req, res, next) {
       departmentId: employee.departmentId || null,
       organizationId: organizationId || employee.organizationId,
       isTeamLead: employee.isTeamLead || false,
-      isManager: employee.isManager || false,
       isDeptHead: employee.isDeptHead || false,
-      managerId: employee.managerId || null,
-      managerName: employee.managerName || null,
       directReports: employee.directReports || []
     };
 
@@ -235,29 +232,14 @@ function requireTeamLead(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized: Authentication required' });
   }
 
-  const isAuthorized = req.user.isTeamLead || req.user.isDeptHead || req.user.isManager ||
-    ['admin', 'business_owner'].includes(req.user.role);
+  const isAuthorized = req.user.isTeamLead || req.user.isDeptHead ||
+    req.user.role === 'admin' || req.user.role === 'business_owner';
 
   if (!isAuthorized) {
     return res.status(403).json({
-      error: 'Forbidden: Team Lead / Manager access required',
+      error: 'Forbidden: Team Lead access required',
       yourRole: req.user.role
     });
-  }
-  next();
-}
-
-/**
- * Require Manager or HOD
- */
-function requireManagerOrHOD(req, res, next) {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  const isAuthorized = req.user.isDeptHead || req.user.isManager ||
-    ['admin', 'business_owner'].includes(req.user.role);
-  if (!isAuthorized) {
-    return res.status(403).json({ error: 'Forbidden: Manager or Tech Lead access required' });
   }
   next();
 }
@@ -282,7 +264,6 @@ module.exports = {
   requireAdminOrBusinessOwner,
   requireSystemAdmin,
   requireTeamLead,
-  requireManagerOrHOD,
   requireDeptHead,
   requireEmployee,
   requireOrganization

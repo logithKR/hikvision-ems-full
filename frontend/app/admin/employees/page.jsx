@@ -40,7 +40,6 @@ export default function AdminEmployeesPage() {
  const [deptFilter, setDeptFilter] = useState("all")
  const [roleFilter, setRoleFilter] = useState("all")
  const [statusFilter, setStatusFilter] = useState("all")
- const [managerFilter, setManagerFilter] = useState("all")
  const [groupByDept, setGroupByDept] = useState(false)
 
  // Edit Dialog
@@ -52,10 +51,7 @@ export default function AdminEmployeesPage() {
  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
  const [viewingEmployee, setViewingEmployee] = useState(null)
 
- // Manager Assignment Dialog
- const [managerDialogOpen, setManagerDialogOpen] = useState(false)
- const [assigningEmployee, setAssigningEmployee] = useState(null)
- const [selectedManagerId, setSelectedManagerId] = useState("")
+
 
  // Create Employee Dialog
  const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -71,10 +67,10 @@ export default function AdminEmployeesPage() {
 
  // Department-specific member creation
  const [deptMemberDialogOpen, setDeptMemberDialogOpen] = useState(false)
- const [deptMemberType, setDeptMemberType] = useState("employee") // 'hod', 'manager', 'employee'
+ const [deptMemberType, setDeptMemberType] = useState("employee") // 'hod', 'employee'
  const [selectedDeptForMember, setSelectedDeptForMember] = useState(null)
  const [deptMemberForm, setDeptMemberForm] = useState({
- name:"", email:"", password:"", phone:"", position:"", managerId:"", hikvisionEmployeeId:""
+ name:"", email:"", password:"", phone:"", position:"", hikvisionEmployeeId:""
  })
 
  // Auth Check
@@ -212,35 +208,7 @@ export default function AdminEmployeesPage() {
  },
  })
 
- // ── Assign Manager Mutation ─────────────────────
- const assignManagerMutation = useMutation({
- mutationFn: async ({ employeeId, managerId }) => {
- const token = await getValidIdToken()
- const base = getApiBase()
- const response = await fetch(`${base}/api/admin/employees/${employeeId}/assign-manager`, {
- method: 'PUT',
- headers: {
- Authorization: `Bearer ${token}`,
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify({ managerId: managerId || null }),
- })
- if (!response.ok) {
- const errData = await response.json()
- throw new Error(errData.error || 'Failed to assign manager')
- }
- return response.json()
- },
- onSuccess: () => {
- toast.success('Manager assigned successfully')
- queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
- setManagerDialogOpen(false)
- setAssigningEmployee(null)
- },
- onError: (err) => {
- toast.error(err.message)
- }
- })
+
 
  // ── Create Employee Mutation ────────────────────
  const createMutation = useMutation({
@@ -275,11 +243,7 @@ export default function AdminEmployeesPage() {
 
  const handleCreateEmployee = () => {
  if (!createForm.name || !createForm.email || !createForm.password) return
- const payload = {
- ...createForm,
- isManager: createForm.role === 'manager',
- }
- createMutation.mutate(payload)
+ createMutation.mutate(createForm)
  }
 
  // ── Create Department Mutation ──────────────────
@@ -334,14 +298,12 @@ export default function AdminEmployeesPage() {
  }
  })
 
- // ── Create Dept Member (HOD/Manager/Employee) Mutation ──
+ // ── Create Dept Member (HOD/Employee) Mutation ──
  const createDeptMemberMutation = useMutation({
  mutationFn: async (data) => {
  const token = await getValidIdToken()
  const endpoint = deptMemberType === 'hod'
  ? `/api/admin/departments/${data.departmentId}/hod`
- : deptMemberType === 'manager'
- ? `/api/admin/departments/${data.departmentId}/managers`
  : `/api/admin/departments/${data.departmentId}/employees`
  const res = await fetch(`${getApiBase()}${endpoint}`, {
  method: 'POST',
@@ -359,7 +321,7 @@ export default function AdminEmployeesPage() {
  queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
  queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
  setDeptMemberDialogOpen(false)
- setDeptMemberForm({ name:"", email:"", password:"", phone:"", position:"", managerId:"", hikvisionEmployeeId:"" })
+ setDeptMemberForm({ name:"", email:"", password:"", phone:"", position:"", hikvisionEmployeeId:"" })
  },
  onError: (err) => {
  toast.error(err.message)
@@ -373,7 +335,6 @@ export default function AdminEmployeesPage() {
  setDeptMemberForm({
  name:"", email:"", password:"", phone:"",
  position: type === 'hod' ? 'Tech Lead' :"",
- managerId:"",
  hikvisionEmployeeId:""
  })
  setDeptMemberDialogOpen(true)
@@ -384,14 +345,6 @@ export default function AdminEmployeesPage() {
  const payload = {
  ...deptMemberForm,
  departmentId: selectedDeptForMember?.id
- }
- // For employees: if managerId is empty or '__hod__', let backend default to HOD
- if (deptMemberType === 'employee') {
- if (payload.managerId === '__hod__' || !payload.managerId) {
- delete payload.managerId // backend defaults to HOD
- }
- } else {
- delete payload.managerId // managers auto-get HOD on backend
  }
  createDeptMemberMutation.mutate(payload)
  }
@@ -405,18 +358,7 @@ export default function AdminEmployeesPage() {
  return Array.from(depts).sort()
  }, [employees])
 
- const managers = useMemo(() => {
- return employees.filter(
- (emp) => emp.isManager === true || emp.role === 'manager' || emp.isDeptHead === true
- )
- }, [employees])
 
- // Managers available for manager assignment in the Assign Manager dialog
- const assignableManagers = useMemo(() => {
- return employees.filter(
- (emp) => (emp.isManager === true || emp.role === 'manager' || emp.isDeptHead === true) && emp.isActive !== false
- )
- }, [employees])
 
  // ── Client-Side Filtering with useMemo ──────────
  const filteredEmployees = useMemo(() => {
@@ -453,17 +395,8 @@ export default function AdminEmployeesPage() {
  }
  }
 
- // Manager filter
- if (managerFilter !=="all") {
- if (managerFilter ==="unassigned") {
- filtered = filtered.filter((emp) => !emp.managerId)
- } else {
- filtered = filtered.filter((emp) => emp.managerId === managerFilter)
- }
- }
-
  return filtered
- }, [employees, searchTerm, deptFilter, roleFilter, statusFilter, managerFilter])
+ }, [employees, searchTerm, deptFilter, roleFilter, statusFilter])
 
  // ── Grouped by Department ───────────────────────
  const groupedEmployees = useMemo(() => {
@@ -482,24 +415,13 @@ export default function AdminEmployeesPage() {
  const total = employees.length
  const active = employees.filter((e) => e.isActive !== false).length
  const inactive = total - active
- const withManagers = employees.filter((e) => e.managerId).length
- return { total, active, inactive, withManagers }
+ return { total, active, inactive }
  }, [employees])
 
- // ── Helpers ─────────────────────────────────────
- const getManagerName = useCallback(
- (managerId) => {
- if (!managerId) return null
- const mgr = employees.find((e) => e.uid === managerId || e.id === managerId)
- return mgr?.name ||"Unknown"
- },
- [employees]
- )
 
  const getRoleBadge = (role, emp) => {
- // Check for HOD and Manager flags first
+ // Check for HOD flag first
  if (emp?.isDeptHead) return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Tech Lead</Badge>
- if (emp?.isManager) return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Manager</Badge>
  switch (role) {
  case"admin":
  return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Admin</Badge>
@@ -507,8 +429,7 @@ export default function AdminEmployeesPage() {
  return <Badge className="bg-blue-600 text-white border-0">Owner</Badge>
  case"team_lead":
  return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Team Lead</Badge>
- case"manager":
- return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Manager</Badge>
+
  default:
  return <Badge className="bg-secondary text-slate-600 border-border">Employee</Badge>
  }
@@ -523,17 +444,10 @@ export default function AdminEmployeesPage() {
  phone: emp.phone || "",
  position: emp.position || "",
  role: emp.role || "employee",
- managerId: emp.managerId || "",
  hikvisionEmployeeId: emp.hikvisionEmployeeId || "",
  })
  updateMutation.reset() // clear any previous error
  setEditDialogOpen(true)
- }
-
- const openManagerDialog = (emp) => {
- setAssigningEmployee(emp)
- setSelectedManagerId(emp.managerId ||"")
- setManagerDialogOpen(true)
  }
 
  const handleSaveEdit = () => {
@@ -542,19 +456,12 @@ export default function AdminEmployeesPage() {
  updateMutation.mutate({ id, data: editForm })
  }
 
- const handleAssignManager = () => {
- if (!assigningEmployee) return
- const employeeId = assigningEmployee.uid || assigningEmployee.id
- assignManagerMutation.mutate({ employeeId, managerId: selectedManagerId || null })
- }
-
  if (!currentUser) return null
 
  const statCards = [
  { label:"Total", value: stats.total, sub:"All staff", icon: Users, accent:"text-blue-600", iconBg:"bg-blue-50 border-blue-100" },
  { label:"Active", value: stats.active, sub:"Currently active", icon: UserCheck, accent:"text-blue-600", iconBg:"bg-blue-50 border-blue-100" },
  { label:"Inactive", value: stats.inactive, sub:"Deactivated", icon: UserX, accent:"text-muted-foreground", iconBg:"bg-background border-border" },
- { label:"Has Manager", value: stats.withManagers, sub:"Assigned", icon: UserPlus, accent:"text-blue-600", iconBg:"bg-blue-50 border-blue-100" },
  ]
 
  // ── Render Employee Row ─────────────────────────
@@ -596,17 +503,6 @@ export default function AdminEmployeesPage() {
  <span className="text-sm text-foreground">{emp.department}</span>
  ) : (
  <span className="text-xs text-slate-300 italic">No dept</span>
- )}
- </TableCell>
-
- {/* Manager */}
- <TableCell className="py-3.5">
- {emp.role === 'business_owner' || emp.role === 'admin' ? (
- <span className="text-xs text-slate-300">—</span>
- ) : emp.managerId ? (
- <span className="text-sm text-foreground">{getManagerName(emp.managerId)}</span>
- ) : (
- <span className="text-xs text-slate-300 italic">Unassigned</span>
  )}
  </TableCell>
 
@@ -652,18 +548,7 @@ export default function AdminEmployeesPage() {
  </Button>
  )}
 
- {/* Assign Manager (not for admins or BO) */}
- {!isAdmin && !isOwner && (
- <Button
- variant="ghost"
- size="sm"
- className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
- onClick={() => openManagerDialog(emp)}
- title="Assign Manager"
- >
- <UserPlus className="h-4 w-4" />
- </Button>
- )}
+
 
  {/* Delete/Restore (not for self, BO, or admins) */}
  {!isOwner && !isAdmin && (
@@ -873,14 +758,9 @@ export default function AdminEmployeesPage() {
  <Shield className="h-3 w-3 mr-1" /> Assign Tech Lead
  </Button>
  ) : (
- <>
- <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => openDeptMemberDialog(dept, 'manager')}>
- <UserPlus className="h-3 w-3 mr-1" /> Manager
- </Button>
  <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openDeptMemberDialog(dept, 'employee')}>
  <UserPlus className="h-3 w-3 mr-1" /> Employee
  </Button>
- </>
  )}
  </div>
  </div>
@@ -945,21 +825,6 @@ export default function AdminEmployeesPage() {
  </SelectContent>
  </Select>
 
- <Select value={managerFilter} onValueChange={setManagerFilter}>
- <SelectTrigger className="w-full sm:w-[160px] border-border text-sm">
- <UserPlus className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
- <SelectValue placeholder="Manager" />
- </SelectTrigger>
- <SelectContent>
- <SelectItem value="all">All Managers</SelectItem>
- <SelectItem value="unassigned">Unassigned</SelectItem>
- {managers.map((mgr) => (
- <SelectItem key={mgr.uid || mgr.id} value={mgr.uid || mgr.id}>
- {mgr.name}
- </SelectItem>
- ))}
- </SelectContent>
- </Select>
 
  {/* Group By Dept Toggle */}
  <Button
@@ -976,18 +841,16 @@ export default function AdminEmployeesPage() {
  </Button>
 
  {/* Clear Filters */}
- {(searchTerm || deptFilter !=="all" || roleFilter !=="all" || statusFilter !=="all" || managerFilter !=="all") && (
+ {(searchTerm || deptFilter !=="all" || roleFilter !=="all" || statusFilter !=="all") && (
  <Button
  variant="ghost"
  size="sm"
  className="text-muted-foreground hover:text-red-500 gap-1"
  onClick={() => {
  setSearchTerm("")
- setSearchTerm("")
  setDeptFilter("all")
  setRoleFilter("all")
  setStatusFilter("all")
- setManagerFilter("all")
  }}
  >
  <X className="h-3.5 w-3.5" />
@@ -1045,14 +908,9 @@ export default function AdminEmployeesPage() {
  <Shield className="h-3 w-3 mr-1" /> Assign Tech Lead
  </Button>
  ) : (
- <>
- <Button size="sm" variant="outline" className="h-7 text-xs border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => openDeptMemberDialog(orgDept, 'manager')}>
- <UserPlus className="h-3 w-3 mr-1" /> Manager
- </Button>
  <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openDeptMemberDialog(orgDept, 'employee')}>
  <UserPlus className="h-3 w-3 mr-1" /> Employee
  </Button>
- </>
  )}
  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => { setDeptToDelete(orgDept); setDeleteDeptConfirmOpen(true); }}>
  <Trash2 className="h-3.5 w-3.5" />
@@ -1079,7 +937,7 @@ export default function AdminEmployeesPage() {
  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Role</TableHead>
  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Position</TableHead>
  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Department</TableHead>
- <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Manager</TableHead>
+
  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Status</TableHead>
  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3 text-right">Actions</TableHead>
  </TableRow>
@@ -1265,10 +1123,7 @@ export default function AdminEmployeesPage() {
  <span className="text-xs font-medium text-muted-foreground uppercase">Phone</span>
  <p className="mt-1 text-sm text-foreground">{viewingEmployee.phone ||"—"}</p>
  </div>
- <div>
- <span className="text-xs font-medium text-muted-foreground uppercase">Manager</span>
- <p className="mt-1 text-sm text-foreground">{getManagerName(viewingEmployee.managerId) ||"Unassigned"}</p>
- </div>
+
  <div>
  <span className="text-xs font-medium text-muted-foreground uppercase">Employee ID</span>
  <p className="mt-1 text-xs font-mono text-muted-foreground break-all">{viewingEmployee.uid || viewingEmployee.id ||"—"}</p>
@@ -1296,61 +1151,6 @@ export default function AdminEmployeesPage() {
  </DialogContent>
  </Dialog>
 
- {/* ── Assign Manager Dialog ────────────────────── */}
- <Dialog open={managerDialogOpen} onOpenChange={setManagerDialogOpen}>
- <DialogContent className="sm:max-w-md">
- <DialogHeader>
- <DialogTitle className="flex items-center gap-2">
- <UserPlus className="h-5 w-5 text-blue-600" />
- Assign Manager
- </DialogTitle>
- <DialogDescription>
- Assign a manager for <strong>{assigningEmployee?.name}</strong>. Only managers and Tech Leads are shown.
- </DialogDescription>
- </DialogHeader>
- <DialogBody>
- <div className="space-y-4 py-4">
- <Select value={selectedManagerId ||"__none__"} onValueChange={(val) => setSelectedManagerId(val ==="__none__" ?"" : val)}>
- <SelectTrigger className="border-border">
- <SelectValue placeholder="Select a manager..." />
- </SelectTrigger>
- <SelectContent>
- <SelectItem value="__none__">
- <span className="text-muted-foreground italic">Unassign Manager</span>
- </SelectItem>
- {assignableManagers
- .filter((m) => (m.uid || m.id) !== (assigningEmployee?.uid || assigningEmployee?.id))
- .map((mgr) => (
- <SelectItem key={mgr.uid || mgr.id} value={mgr.uid || mgr.id}>
- <div className="flex items-center gap-2">
- <span>{mgr.name}</span>
- <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0">Manager</Badge>
- {mgr.department && <span className="text-xs text-muted-foreground">({mgr.department})</span>}
- </div>
- </SelectItem>
- ))}
- </SelectContent>
- </Select>
- </div>
- </DialogBody>
- <DialogFooter>
- <Button variant="outline" onClick={() => setManagerDialogOpen(false)} className="border-border">
- Cancel
- </Button>
- <Button
- onClick={handleAssignManager}
- disabled={assignManagerMutation.isPending}
- className="bg-blue-600 hover:bg-blue-700 text-white"
- >
- {assignManagerMutation.isPending ? (
- <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Assigning...</>
- ) : (
- <><UserPlus className="mr-2 h-4 w-4" /> Assign</>
- )}
- </Button>
- </DialogFooter>
- </DialogContent>
- </Dialog>
 
  {/* ── Create Employee Dialog ───────────────────── */}
  <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -1460,12 +1260,6 @@ export default function AdminEmployeesPage() {
  <span>Employee</span>
  </div>
  </SelectItem>
- <SelectItem value="manager">
- <div className="flex items-center gap-2">
- <Shield className="h-3 w-3 text-blue-500" />
- <span>Manager</span>
- </div>
- </SelectItem>
  </SelectContent>
  </Select>
  </div>
@@ -1493,38 +1287,6 @@ export default function AdminEmployeesPage() {
  </div>
  </div>
 
- {/* Manager Assignment */}
- <div className="space-y-2">
- <Label className="text-sm font-medium text-foreground">Assign Manager</Label>
- <Select
- value={createForm.managerId || '__unassigned__'}
- onValueChange={(val) => setCreateForm({ ...createForm, managerId: val === '__unassigned__' ? '' : val })}
- >
- <SelectTrigger className="border-border">
- <SelectValue placeholder="Select manager" />
- </SelectTrigger>
- <SelectContent>
- <SelectItem value="__unassigned__">
- <div className="flex items-center gap-2">
- <Shield className="h-3 w-3 text-purple-500" />
- <span className="text-purple-700 font-medium">Unassigned</span>
- </div>
- </SelectItem>
- {employees
- .filter(e => (e.isManager === true || e.role === 'manager' || e.isDeptHead === true) && e.isActive !== false)
- .map(mgr => (
- <SelectItem key={mgr.uid || mgr.id} value={mgr.uid || mgr.id}>
- <div className="flex items-center gap-2">
- <UserCheck className="h-3 w-3 text-blue-500" />
- <span>{mgr.name}</span>
- <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0">Manager</Badge>
- {mgr.department && <span className="text-xs text-muted-foreground">({mgr.department})</span>}
- </div>
- </SelectItem>
- ))}
- </SelectContent>
- </Select>
- </div>
 
  {/* Hikvision Device Link */}
  <div className="space-y-2">
@@ -1636,13 +1398,13 @@ export default function AdminEmployeesPage() {
  </DialogContent>
  </Dialog>
 
- {/* ── Add Dept Member (Tech Lead/Manager/Employee) Dialog ── */}
+ {/* ── Add Dept Member (Tech Lead/Employee) Dialog ── */}
  <Dialog open={deptMemberDialogOpen} onOpenChange={setDeptMemberDialogOpen}>
  <DialogContent className="sm:max-w-lg">
  <DialogHeader>
  <DialogTitle className="flex items-center gap-2">
  {deptMemberType === 'hod' ? <Shield className="h-5 w-5 text-purple-600" /> : <UserPlus className="h-5 w-5 text-blue-600" />}
- Add {deptMemberType === 'hod' ? 'Tech Lead' : deptMemberType === 'manager' ? 'Manager' : 'Employee'}
+ Add {deptMemberType === 'hod' ? 'Tech Lead' : 'Employee'}
  </DialogTitle>
  <DialogDescription>
  Create a new {deptMemberType} for <strong>{selectedDeptForMember?.name}</strong>.
@@ -1691,50 +1453,6 @@ export default function AdminEmployeesPage() {
  </div>
  </div>
 
- {/* Manager Assignment - shown for Employee type */}
- {deptMemberType === 'employee' && (
- <div className="space-y-2">
- <Label className="text-sm font-medium text-foreground">Assign To Manager</Label>
- <Select
- value={deptMemberForm.managerId || '__hod__'}
- onValueChange={(val) => setDeptMemberForm({ ...deptMemberForm, managerId: val })}
- >
- <SelectTrigger className="border-border">
- <SelectValue placeholder="Select manager" />
- </SelectTrigger>
- <SelectContent>
- <SelectItem value="__hod__">
- <div className="flex items-center gap-2">
- <Shield className="h-3 w-3 text-purple-500" />
- <span className="text-purple-700 font-medium">Unassigned (reports to HOD)</span>
- </div>
- </SelectItem>
- {employees
- .filter(e => (e.isManager === true || e.role === 'manager' || e.isDeptHead === true) && e.isActive !== false && e.department === selectedDeptForMember?.name)
- .map(mgr => (
- <SelectItem key={mgr.uid || mgr.id} value={mgr.uid || mgr.id}>
- <div className="flex items-center gap-2">
- <UserCheck className="h-3 w-3 text-blue-500" />
- <span>{mgr.name}</span>
- {mgr.position && <span className="text-xs text-muted-foreground">({mgr.position})</span>}
- </div>
- </SelectItem>
- ))}
- </SelectContent>
- </Select>
- <p className="text-[10px] text-muted-foreground">If no manager is selected, the employee reports directly to the HOD.</p>
- </div>
- )}
-
- {/* Auto-assign note for Managers */}
- {deptMemberType === 'manager' && selectedDeptForMember?.headName && (
- <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
- <Shield className="h-4 w-4 text-purple-500" />
- <p className="text-xs text-blue-700">
- This manager will automatically report to <strong>{selectedDeptForMember.headName}</strong> (HOD)
- </p>
- </div>
- )}
 
  {/* Hikvision Device Link */}
  <div className="space-y-2">
