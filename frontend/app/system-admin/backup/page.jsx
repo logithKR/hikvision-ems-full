@@ -418,7 +418,7 @@ export default function SystemAdminBackupPage() {
               </div>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+          <DialogFooter className="gap-2 mt-4">
             <Button variant="outline" onClick={() => {
               setIsRestoreDialogOpen(false)
               setRestoreConfirmation("")

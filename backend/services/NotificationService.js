@@ -7,9 +7,11 @@
 
 class NotificationService {
     /**
+     * @param {NotificationRepository} notificationRepo 
      * @param {Server} io - Socket.io server instance (optional)
      */
-    constructor(io = null) {
+    constructor(notificationRepo = null, io = null) {
+        this.notificationRepo = notificationRepo;
         this.io = io;
         this.connectedUsers = new Map(); // Map<userId, socketId>
     }
@@ -96,6 +98,32 @@ class NotificationService {
         // Better: Join admins to `org:${orgId}:admins` room upon auth
         this.io.to(`org:${orgId}:admins`).emit(event, data);
         console.log(`📨 Sent '${event}' to org ${orgId} admins`);
+    }
+
+    /**
+     * Create a persistent notification in DB and emit via socket
+     * @param {string} orgId 
+     * @param {string} userId 
+     * @param {Object} payload - { type, title, message, data }
+     */
+    async sendPersistentNotification(orgId, userId, payload) {
+        if (!this.notificationRepo) {
+            console.warn('⚠️ NotificationService: notificationRepo not injected, cannot persist.');
+            this.sendToUser(userId, 'notification', payload);
+            return;
+        }
+
+        try {
+            // 1. Save to DB
+            const savedNotification = await this.notificationRepo.create(orgId, userId, payload);
+            
+            // 2. Emit via socket
+            this.sendToUser(userId, 'notification', savedNotification);
+            
+            return savedNotification;
+        } catch (error) {
+            console.error(`❌ Failed to send persistent notification:`, error);
+        }
     }
 }
 

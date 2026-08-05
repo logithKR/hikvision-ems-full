@@ -18,6 +18,8 @@ import AdminAttendancePage from '@/app/admin/attendance/page'
 import AdminLeaveRequestsPage from '@/app/admin/leave-requests/page'
 import AdminProfilePage from '@/app/admin/profile/page'
 import AdminOrgChartPage from '@/app/admin/org-chart/page'
+import AdminProjectsPage from '@/app/admin/projects/page'
+import AdminProjectDetailsPage from '@/app/employee/projects/[id]/page' // We can reuse the same page since it checks roles!
 
 // Employee Pages
 import EmployeeDashboardPage from '@/app/employee/dashboard/page'
@@ -28,6 +30,8 @@ import EmployeeProfilePage from '@/app/employee/profile/page'
 import EmployeeTeamPage from '@/app/employee/team/page'
 import EmployeeTeamAttendancePage from '@/app/employee/team/attendance/page'
 import EmployeeTeamLeavesPage from '@/app/employee/team/leaves/page'
+import EmployeeProjectsPage from '@/app/employee/projects/page'
+import EmployeeProjectDetailsPage from '@/app/employee/projects/[id]/page'
 
 // Business Owner Pages
 import BORegisterPage from '@/app/business-owner/register/page'
@@ -35,6 +39,8 @@ import BODashboardPage from '@/app/business-owner/dashboard/page'
 import BOEmployeesPage from '@/app/business-owner/employees/page'
 import BOAttendancePage from '@/app/business-owner/attendance/page'
 import BOLeaveRequestsPage from '@/app/business-owner/leave-requests/page'
+import BOProjectsPage from '@/app/business-owner/projects/page'
+import BOProjectDetailsPage from '@/app/employee/projects/[id]/page' // Reusing employee details page
 import BOProfilePage from '@/app/business-owner/profile/page'
 
 // System Admin Pages
@@ -58,6 +64,8 @@ export default function App() {
  <Route path="employees" element={<AdminEmployeesPage />} />
  <Route path="attendance" element={<AdminAttendancePage />} />
  <Route path="leave-requests" element={<AdminLeaveRequestsPage />} />
+ <Route path="projects" element={<AdminProjectsPage />} />
+ <Route path="projects/:id" element={<AdminProjectDetailsPage />} />
  <Route path="profile" element={<AdminProfilePage />} />
  <Route index element={<Navigate to="dashboard" replace />} />
  </Route>
@@ -72,6 +80,8 @@ export default function App() {
  <Route path="team" element={<EmployeeTeamPage />} />
  <Route path="team/attendance" element={<EmployeeTeamAttendancePage />} />
  <Route path="team/leaves" element={<EmployeeTeamLeavesPage />} />
+ <Route path="projects" element={<EmployeeProjectsPage />} />
+ <Route path="projects/:id" element={<EmployeeProjectDetailsPage />} />
  <Route index element={<Navigate to="dashboard" replace />} />
  </Route>
 
@@ -82,6 +92,8 @@ export default function App() {
  <Route path="employees" element={<BOEmployeesPage />} />
  <Route path="attendance" element={<BOAttendancePage />} />
  <Route path="leave-requests" element={<BOLeaveRequestsPage />} />
+ <Route path="projects" element={<BOProjectsPage />} />
+ <Route path="projects/:id" element={<BOProjectDetailsPage />} />
  <Route path="profile" element={<BOProfilePage />} />
  <Route index element={<Navigate to="dashboard" replace />} />
  </Route>

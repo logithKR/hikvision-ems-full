@@ -16,7 +16,8 @@ import {
  User,
  Menu,
  X,
- GitBranch
+ GitBranch,
+ FolderKanban
 } from"lucide-react"
 import { getCurrentUser, isAuthenticated, logoutUser } from"@/lib/auth"
 import { cn } from"@/lib/utils"
@@ -86,9 +87,14 @@ export default function AdminLayout({ children }) {
  icon: Calendar,
  },
  {
- href:"/admin/leave-requests",
- label:"Leave Requests",
+ href: "/admin/leave-requests",
+ label: "Leave Requests",
  icon: FileText,
+ },
+ {
+ href: "/admin/projects",
+ label: "Projects",
+ icon: FolderKanban,
  },
  {
  href:"/admin/profile",
@@ -136,8 +142,8 @@ export default function AdminLayout({ children }) {
  </div>
 
  {/* Mobile Bottom Navigation Bar (Elite SaaS Style) */}
- <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-card border-t border-border flex items-center justify-around pb-safe px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
- {navLinks.slice(0, 5).map((link) => {
+ <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-card border-t border-border flex items-center overflow-x-auto gap-1 pb-safe px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] no-scrollbar">
+ {navLinks.map((link) => {
  const Icon = link.icon;
  const active = isActive(link.href);
  return (
@@ -145,7 +151,7 @@ export default function AdminLayout({ children }) {
  key={link.href}
  to={link.href}
  className={cn(
-"flex flex-col items-center justify-center w-16 h-12 gap-1 rounded-xl transition-all",
+"flex flex-col items-center justify-center min-w-[64px] flex-shrink-0 h-12 gap-1 rounded-xl transition-all",
  active 
  ?"text-blue-600 dark:text-blue-400" 
  :"text-muted-foreground hover:text-foreground dark:text-muted-foreground dark:hover:text-slate-200 hover:bg-background dark:hover:bg-slate-800"

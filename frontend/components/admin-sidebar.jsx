@@ -1,5 +1,5 @@
-import { cn } from"@/lib/utils"
-import { LayoutDashboard, Users, Clock, FileText, UserCircle, LogOut } from"lucide-react"
+import { cn } from "@/lib/utils"
+import { LayoutDashboard, Users, Clock, FileText, UserCircle, LogOut, FolderKanban } from "lucide-react"
 import { Link, useLocation, useNavigate } from"react-router-dom"
 import { handleLogout } from"@/lib/redirectUtils"
 
@@ -12,6 +12,7 @@ export function AdminSidebar() {
  { href:"/admin/employees", label:"Employee Management", icon: Users },
  { href:"/admin/attendance", label:"Attendance Overview", icon: Clock },
  { href:"/admin/leave-requests", label:"Leave Requests", icon: FileText },
+ { href:"/admin/projects", label:"Projects", icon: FolderKanban },
  { href:"/admin/profile", label:"Profile", icon: UserCircle },
  ]
 

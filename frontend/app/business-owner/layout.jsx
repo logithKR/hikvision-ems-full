@@ -16,7 +16,8 @@ import {
  User,
  Menu,
  X,
- Shield
+ Shield,
+ FolderKanban
 } from"lucide-react"
 import { getCurrentUser, isAuthenticated, logoutUser } from"@/lib/auth"
 import { cn } from"@/lib/utils"
@@ -88,6 +89,11 @@ export default function BusinessOwnerLayout({ children }) {
  icon: FileText,
  },
  {
+ href:"/business-owner/projects",
+ label:"Projects",
+ icon: FolderKanban,
+ },
+ {
  href:"/business-owner/profile",
  label:"Profile",
  icon: User,
@@ -134,7 +140,7 @@ export default function BusinessOwnerLayout({ children }) {
 
  {/* Mobile Bottom Navigation Bar (Elite SaaS Style) */}
  <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-card border-t border-border flex items-center justify-around pb-safe px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
- {navLinks.slice(0, 5).map((link) => {
+ {navLinks.slice(0, 6).map((link) => {
  const Icon = link.icon;
  const active = isActive(link.href);
  return (

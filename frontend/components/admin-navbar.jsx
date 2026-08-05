@@ -1,4 +1,5 @@
-import { Avatar, AvatarFallback, AvatarImage } from"@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { NotificationDrawer } from "@/components/notification-drawer"
 
 export function AdminNavbar() {
  return (
@@ -7,11 +8,12 @@ export function AdminNavbar() {
  <h1 className="text-lg font-semibold">Admin Dashboard</h1>
  </div>
 
- <div className="flex items-center gap-3">
- <div className="text-right">
- <p className="text-sm font-medium">Admin User</p>
- <p className="text-xs text-muted-foreground">admin@company.com</p>
- </div>
+  <div className="flex items-center gap-4">
+    <NotificationDrawer />
+    <div className="text-right hidden sm:block">
+      <p className="text-sm font-medium">Admin User</p>
+      <p className="text-xs text-muted-foreground">admin@company.com</p>
+    </div>
  <Avatar>
  <AvatarImage src="/admin-interface.png" alt="Admin" />
  <AvatarFallback className="bg-primary text-on-primary">AD</AvatarFallback>

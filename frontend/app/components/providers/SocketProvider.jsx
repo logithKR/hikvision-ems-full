@@ -89,6 +89,18 @@ export function SocketProvider({ children }) {
  queryClient.invalidateQueries({ queryKey: ['sa-organizations'] });
  });
 
+ newSocket.on('realtime:projects', (data) => {
+ console.log('📡 Real-time projects update received');
+ queryClient.invalidateQueries({ queryKey: ['admin-projects-all'] });
+ queryClient.invalidateQueries({ queryKey: ['bo-projects-all'] });
+ queryClient.invalidateQueries({ queryKey: ['employee-projects'] });
+ queryClient.invalidateQueries({ queryKey: ['project-stats'] });
+ queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+ queryClient.invalidateQueries({ queryKey: ['bo-dashboard'] });
+ queryClient.invalidateQueries({ queryKey: ['emp-dashboard'] });
+ queryClient.invalidateQueries({ queryKey: ['team-dashboard'] });
+ });
+
  // ========================================
  // TOAST NOTIFICATIONS (user-facing)
  // ========================================

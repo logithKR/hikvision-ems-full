@@ -35,6 +35,10 @@ export default defineConfig({
  secure: false,
  // rewrite: (path) => path.replace(/^\/api/, ''),
  },
+ '/socket.io': {
+ target: 'ws://localhost:3000', // Proxy websocket traffic
+ ws: true,
+ }
  },
  },
 })

@@ -33,6 +33,8 @@ const attendanceRoutes = require('./routes/attendance');
 const leaveRoutes = require('./routes/leave');
 const teamRoutes = require('./routes/team');
 const systemAdminRoutes = require('./routes/system_admin');
+const projectRoutes = require('./routes/projects');
+const notificationRoutes = require('./routes/notifications');
 // HIKVISION TEMPORARILY DISABLED
 // const hikvisionRoutes = require('./routes/hikvision');
 
@@ -120,6 +122,8 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/system-admin', systemAdminRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/notifications', notificationRoutes);
 const backupRoutes = require('./routes/backup');
 app.use('/api/system-admin', backupRoutes);
 
@@ -130,6 +134,8 @@ app.use('/attendance', attendanceRoutes);
 app.use('/leave', leaveRoutes);
 app.use('/team', teamRoutes);
 app.use('/system-admin', systemAdminRoutes);
+app.use('/projects', projectRoutes);
+app.use('/notifications', notificationRoutes);
 // HIKVISION TEMPORARILY DISABLED
 // This route was used for Hikvision attendance device callbacks.
 // Re-enable if Hikvision integration is needed again.

@@ -111,14 +111,16 @@ export default function TeamDashboard() {
  </p>
  </div>
  <div className="flex gap-2">
- <Button
- onClick={() => navigate("/employee/team/leaves")}
- className={`gap-2 ${teamData.pendingLeaves.length > 0 ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
- >
- <FileText className="h-4 w-4" />
- Approvals
- {teamData.pendingLeaves.length > 0 && <Badge className="ml-1 bg-card text-amber-600 h-5 w-5 p-0 justify-center rounded-full">{teamData.pendingLeaves.length}</Badge>}
- </Button>
+ {currentUser?.isDeptHead && (
+  <Button
+  onClick={() => navigate("/employee/team/leaves")}
+  className={`gap-2 ${teamData.pendingLeaves.length > 0 ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+  >
+  <FileText className="h-4 w-4" />
+  Approvals
+  {teamData.pendingLeaves.length > 0 && <Badge className="ml-1 bg-card text-amber-600 h-5 w-5 p-0 justify-center rounded-full">{teamData.pendingLeaves.length}</Badge>}
+  </Button>
+ )}
  <Button variant="outline" size="icon" onClick={refresh} disabled={isBackgroundRefresh}>
  <RefreshCw className={`h-4 w-4 ${isBackgroundRefresh ? 'animate-spin' : ''}`} />
  </Button>

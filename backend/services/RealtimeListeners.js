@@ -91,8 +91,18 @@ class RealtimeListeners {
             });
         unsubscribes.push(usersUnsub);
 
+        // 4. Projects collection listener
+        const projectsUnsub = this.db
+            .collection('organizations').doc(orgId).collection('projects')
+            .onSnapshot(() => {
+                this.debouncedEmit(orgId, 'realtime:projects');
+            }, (error) => {
+                console.error(`❌ Projects listener error for org ${orgId}:`, error.message);
+            });
+        unsubscribes.push(projectsUnsub);
+
         this.activeListeners.set(orgId, { unsubscribes });
-        console.log(`✅ Real-time listeners active for org: ${orgId} (3 collections)`);
+        console.log(`✅ Real-time listeners active for org: ${orgId} (4 collections)`);
     }
 
     /**

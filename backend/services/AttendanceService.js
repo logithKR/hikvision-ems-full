@@ -422,6 +422,33 @@ class AttendanceService {
       throw new Error(`Failed to get team weekly hours: ${error.message}`);
     }
   }
+
+  /**
+   * Get weekly hours for an array of user IDs
+   */
+  async getWeeklyHoursForUsers(orgId, memberIds, weekStart, weekEnd) {
+    try {
+      if (!this.userRepo) throw new Error('UserRepository not injected');
+      
+      const teamHours = await Promise.all(memberIds.map(async (memberId) => {
+        const member = await this.userRepo.findById(orgId, memberId);
+        if (!member) return null;
+        const stats = await this.getWeeklyHours(orgId, memberId, weekStart, weekEnd);
+        return {
+          user: {
+            id: member.id,
+            name: member.name
+          },
+          stats
+        };
+      }));
+
+      return teamHours.filter(t => t !== null);
+    } catch (error) {
+      console.error(`❌ [AttendanceService] getWeeklyHoursForUsers error:`, error);
+      throw new Error(`Failed to get weekly hours for users: ${error.message}`);
+    }
+  }
 }
 
 module.exports = AttendanceService;

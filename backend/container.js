@@ -21,6 +21,8 @@ const LeaveRepository = require('./repositories/LeaveRepository');
 const StatisticsRepository = require('./repositories/StatisticsRepository');
 const AuditLogRepository = require('./repositories/AuditLogRepository');
 const DepartmentRepository = require('./repositories/DepartmentRepository');
+const ProjectRepository = require('./repositories/ProjectRepository');
+const NotificationRepository = require('./repositories/NotificationRepository');
 
 // ========================================
 // SERVICES
@@ -34,6 +36,7 @@ const StatisticsService = require('./services/StatisticsService');
 const AuditLogService = require('./services/AuditLogService');
 const NotificationService = require('./services/NotificationService');
 const BackupService = require('./services/BackupService');
+const ProjectService = require('./services/ProjectService');
 
 /**
  * Container Class
@@ -61,12 +64,14 @@ class Container {
     this.statisticsRepo = new StatisticsRepository(this.db);
     this.auditLogRepo = new AuditLogRepository(this.db);
     this.departmentRepo = new DepartmentRepository(this.db);
+    this.projectRepo = new ProjectRepository(this.db);
+    this.notificationRepo = new NotificationRepository(this.db);
     console.log('✅ Repositories initialized');
 
     // ========================================
     // Initialize Services (with dependencies)
     // ========================================
-    this.notificationService = new NotificationService();
+    this.notificationService = new NotificationService(this.notificationRepo);
     console.log('✅ NotificationService initialized');
 
     this.auditLogService = new AuditLogService(this.auditLogRepo);
@@ -112,6 +117,9 @@ class Container {
 
     this.backupService = new BackupService(this.db, this.auditLogService);
     console.log('✅ BackupService initialized');
+
+    this.projectService = new ProjectService(this.projectRepo, this.userRepo, this.notificationService);
+    console.log('✅ ProjectService initialized');
 
     console.log('🎉 Container initialization complete!');
   }
@@ -188,6 +196,14 @@ class Container {
     return this.backupService;
   }
 
+  /**
+   * Get ProjectService instance
+   * @returns {ProjectService}
+   */
+  getProjectService() {
+    return this.projectService;
+  }
+
   // ========================================
   // REPOSITORY GETTERS
   // ========================================
@@ -246,6 +262,22 @@ class Container {
    */
   getDepartmentRepo() {
     return this.departmentRepo;
+  }
+
+  /**
+   * Get ProjectRepository instance
+   * @returns {ProjectRepository}
+   */
+  getProjectRepo() {
+    return this.projectRepo;
+  }
+
+  /**
+   * Get NotificationRepository instance
+   * @returns {NotificationRepository}
+   */
+  getNotificationRepo() {
+    return this.notificationRepo;
   }
 
   /**
