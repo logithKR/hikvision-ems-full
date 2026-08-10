@@ -209,7 +209,7 @@ class QuotaService {
 
     const permissions = {
       system_admin: ['business_owner'], // System Admin can create business owners
-      business_owner: ['admin', 'business_owner', 'employee', 'team_lead', 'manager'], // Business owner can create most roles
+      business_owner: ['admin', 'business_owner', 'employee', 'manager'], // Business owner can create most roles
     };
 
     const allowedRoles = permissions[creatorRole] || [];

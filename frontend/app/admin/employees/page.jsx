@@ -298,12 +298,12 @@ export default function AdminEmployeesPage() {
  }
  })
 
- // ── Create Dept Member (HOD/Employee) Mutation ──
+ // ── Create Dept Member (Manager/Employee) Mutation ──
  const createDeptMemberMutation = useMutation({
  mutationFn: async (data) => {
  const token = await getValidIdToken()
- const endpoint = deptMemberType === 'hod'
- ? `/api/admin/departments/${data.departmentId}/hod`
+ const endpoint = deptMemberType === 'manager'
+ ? `/api/admin/departments/${data.departmentId}/manager`
  : `/api/admin/departments/${data.departmentId}/employees`
  const res = await fetch(`${getApiBase()}${endpoint}`, {
  method: 'POST',
@@ -334,7 +334,7 @@ export default function AdminEmployeesPage() {
  setDeptMemberType(type)
  setDeptMemberForm({
  name:"", email:"", password:"", phone:"",
- position: type === 'hod' ? 'Tech Lead' :"",
+ position: type === 'manager' ? 'Manager' :"",
  hikvisionEmployeeId:""
  })
  setDeptMemberDialogOpen(true)
@@ -420,15 +420,15 @@ export default function AdminEmployeesPage() {
 
 
  const getRoleBadge = (role, emp) => {
- // Check for HOD flag first
- if (emp?.isDeptHead) return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Tech Lead</Badge>
+ // Check for Manager flag first
+ if (emp?.isManager) return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Manager</Badge>
  switch (role) {
  case"admin":
  return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Admin</Badge>
  case"business_owner":
  return <Badge className="bg-blue-600 text-white border-0">Owner</Badge>
  case"team_lead":
- return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Team Lead</Badge>
+ return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Manager</Badge>
 
  default:
  return <Badge className="bg-secondary text-slate-600 border-border">Employee</Badge>
@@ -742,10 +742,10 @@ export default function AdminEmployeesPage() {
  {/* Department Stats */}
  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-muted-foreground">
  <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {dept.memberCount || 0}/{dept.maxEmployees || '∞'} members</span>
- {dept.headName ? (
- <span className="flex items-center gap-1 text-purple-600 font-medium"><Shield className="h-3 w-3" /> Tech Lead: {dept.headName}</span>
+ {dept.managerName ? (
+ <span className="flex items-center gap-1 text-purple-600 font-medium"><Shield className="h-3 w-3" /> Manager: {dept.managerName}</span>
  ) : (
- <span className="flex items-center gap-1 text-amber-500"><AlertCircle className="h-3 w-3" /> No Tech Lead</span>
+ <span className="flex items-center gap-1 text-amber-500"><AlertCircle className="h-3 w-3" /> No Manager</span>
  )}
  </div>
  {dept.createdAt && (
@@ -753,9 +753,9 @@ export default function AdminEmployeesPage() {
  )}
  {/* Action Buttons */}
  <div className="flex gap-2 mt-3">
- {!dept.headId ? (
- <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(dept, 'hod')}>
- <Shield className="h-3 w-3 mr-1" /> Assign Tech Lead
+ {!dept.managerId ? (
+ <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(dept, 'manager')}>
+ <Shield className="h-3 w-3 mr-1" /> Assign Manager
  </Button>
  ) : (
  <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openDeptMemberDialog(dept, 'employee')}>
@@ -808,7 +808,7 @@ export default function AdminEmployeesPage() {
  <SelectContent>
  <SelectItem value="all">All Roles</SelectItem>
  <SelectItem value="employee">Employee</SelectItem>
- <SelectItem value="team_lead">Team Lead</SelectItem>
+ <SelectItem value="team_lead">Manager</SelectItem>
  <SelectItem value="admin">Admin</SelectItem>
  <SelectItem value="business_owner">Owner</SelectItem>
  </SelectContent>
@@ -903,9 +903,9 @@ export default function AdminEmployeesPage() {
  </div>
  {orgDept && (
  <div className="flex items-center gap-2">
- {!orgDept.headId ? (
- <Button size="sm" variant="outline" className="h-7 text-xs border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(orgDept, 'hod')}>
- <Shield className="h-3 w-3 mr-1" /> Assign Tech Lead
+ {!orgDept.managerId ? (
+ <Button size="sm" variant="outline" className="h-7 text-xs border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(orgDept, 'manager')}>
+ <Shield className="h-3 w-3 mr-1" /> Assign Manager
  </Button>
  ) : (
  <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openDeptMemberDialog(orgDept, 'employee')}>
@@ -1398,13 +1398,13 @@ export default function AdminEmployeesPage() {
  </DialogContent>
  </Dialog>
 
- {/* ── Add Dept Member (Tech Lead/Employee) Dialog ── */}
+ {/* ── Add Dept Member (Manager/Employee) Dialog ── */}
  <Dialog open={deptMemberDialogOpen} onOpenChange={setDeptMemberDialogOpen}>
  <DialogContent className="sm:max-w-lg">
  <DialogHeader>
  <DialogTitle className="flex items-center gap-2">
- {deptMemberType === 'hod' ? <Shield className="h-5 w-5 text-purple-600" /> : <UserPlus className="h-5 w-5 text-blue-600" />}
- Add {deptMemberType === 'hod' ? 'Tech Lead' : 'Employee'}
+ {deptMemberType === 'manager' ? <Shield className="h-5 w-5 text-purple-600" /> : <UserPlus className="h-5 w-5 text-blue-600" />}
+ Add {deptMemberType === 'manager' ? 'Manager' : 'Employee'}
  </DialogTitle>
  <DialogDescription>
  Create a new {deptMemberType} for <strong>{selectedDeptForMember?.name}</strong>.
@@ -1442,10 +1442,10 @@ export default function AdminEmployeesPage() {
  placeholder="e.g. Senior Developer"
  value={deptMemberForm.position}
  onChange={(e) => setDeptMemberForm({ ...deptMemberForm, position: e.target.value })}
- disabled={deptMemberType === 'hod'}
+ disabled={deptMemberType === 'manager'}
  className="border-border focus-visible:ring-blue-500"
  />
- {deptMemberType === 'hod' && <p className="text-[10px] text-purple-500 font-medium">Locked for Tech Lead role</p>}
+ {deptMemberType === 'manager' && <p className="text-[10px] text-purple-500 font-medium">Locked for Manager role</p>}
  </div>
  <div className="space-y-2">
  <Label className="text-sm font-medium text-foreground">Phone</Label>
@@ -1475,7 +1475,7 @@ export default function AdminEmployeesPage() {
  <Button
  onClick={handleCreateDeptMember}
  disabled={createDeptMemberMutation.isPending || !deptMemberForm.name || !deptMemberForm.email || !deptMemberForm.password}
- className={deptMemberType === 'hod' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}
+ className={deptMemberType === 'manager' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}
  >
  {createDeptMemberMutation.isPending ? (
  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Creating...</>

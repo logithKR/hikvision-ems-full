@@ -86,7 +86,7 @@ class EmployeeService {
         department: employeeData.department || '',
         departmentId: employeeData.departmentId || null,
         position: employeeData.position || (targetRole === 'admin' ? 'Admin' : 'Employee'),
-        isDeptHead: employeeData.isDeptHead || false,
+        isManager: employeeData.isManager || false,
         salary: employeeData.salary || '0',
         workingType: employeeData.workingType || 'full-time',
         skills: employeeData.skills || '',
@@ -100,9 +100,9 @@ class EmployeeService {
       // 6. Increment department member count if department assigned
       if (employeeData.departmentId && this.deptRepo) {
         await this.deptRepo.incrementMemberCount(orgId, employeeData.departmentId);
-        // If this is a dept head, update the department record
-        if (employeeData.isDeptHead) {
-          await this.deptRepo.setHead(orgId, employeeData.departmentId, employee.id, employee.name);
+        // If this is a manager, update the department record
+        if (employeeData.isManager) {
+          await this.deptRepo.setManager(orgId, employeeData.departmentId, employee.id, employee.name);
         }
       }
 
@@ -134,7 +134,7 @@ class EmployeeService {
 
 
   /**
-   * Get department members (for HOD view)
+   * Get department members (for Manager view)
    * @param {string} orgId
    * @param {string} deptId
    * @returns {Promise<Array>}
@@ -313,10 +313,10 @@ class EmployeeService {
       const userRole = employee.role || 'employee';
 
 
-      // 2. If this employee is a Dept Head, clear the department's headId
-      if (employee.isDeptHead && employee.departmentId && this.deptRepo) {
-        await this.deptRepo.clearHead(orgId, employee.departmentId);
-        console.log(`🔄 Cleared HOD from department ${employee.departmentId}`);
+      // 2. If this employee is a Manager, clear the department's managerId
+      if (employee.isManager && employee.departmentId && this.deptRepo) {
+        await this.deptRepo.clearManager(orgId, employee.departmentId);
+        console.log(`🔄 Cleared Manager from department ${employee.departmentId}`);
       }
 
       // 3. Reassign any pending leave requests that were routed to this person

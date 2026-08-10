@@ -80,7 +80,11 @@ class BackupService {
             const includedCollections = [];
 
             // 1. Root Collections
-            const rootCollections = ['users', 'organizations', 'audit_logs', 'hikvision_logs'];
+            const allRootCollections = await this.db.listCollections();
+            const rootCollections = allRootCollections
+                .map(c => c.id)
+                .filter(id => id !== 'system_backups'); // Never backup the backups!
+
             for (const collName of rootCollections) {
                 const data = await this._backupCollection(this.db.collection(collName));
                 backupData[collName] = data;
@@ -99,8 +103,11 @@ class BackupService {
                 backupData['organization_subcollections'][orgId] = {};
                 const orgRef = this.db.collection('organizations').doc(orgId);
                 
-                const subcollections = ['users', 'departments', 'attendance', 'leaves', 'statistics'];
-                for (const subColl of subcollections) {
+                // Dynamically fetch all subcollections for this organization
+                const orgCollections = await orgRef.listCollections();
+                
+                for (const col of orgCollections) {
+                    const subColl = col.id;
                     const data = await this._backupCollection(orgRef.collection(subColl));
                     backupData['organization_subcollections'][orgId][subColl] = data;
                     const docCount = Object.keys(data).length;
@@ -256,9 +263,13 @@ class BackupService {
             // We must clear the same collections we backup so we don't have zombie documents
             console.log('🧹 [BackupService] Clearing existing collections before restore...');
             
-            // Clear root collections
-            const rootCollections = ['users', 'organizations', 'audit_logs', 'hikvision_logs'];
-            for (const collName of rootCollections) {
+            // Clear root collections (dynamic)
+            const allCurrentCollections = await this.db.listCollections();
+            const collectionsToClear = allCurrentCollections
+                .map(c => c.id)
+                .filter(id => id !== 'system_backups');
+
+            for (const collName of collectionsToClear) {
                 await this._deleteCollection(this.db.collection(collName));
             }
 
@@ -299,12 +310,12 @@ class BackupService {
             };
 
             // Restore Root Collections
-            for (const collName of rootCollections) {
-                if (backupData[collName]) {
-                    for (const [docId, data] of Object.entries(backupData[collName])) {
-                        const docRef = this.db.collection(collName).doc(docId);
-                        await addDocToBatch(docRef, data);
-                    }
+            for (const collName of Object.keys(backupData)) {
+                if (collName === 'organization_subcollections') continue;
+                
+                for (const [docId, data] of Object.entries(backupData[collName])) {
+                    const docRef = this.db.collection(collName).doc(docId);
+                    await addDocToBatch(docRef, data);
                 }
             }
 

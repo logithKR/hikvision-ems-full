@@ -47,7 +47,7 @@ class ProjectService {
     }
 
     /**
-     * Get all projects for a specific department (Tech Lead)
+     * Get all projects for a specific department (Manager)
      */
     async getDepartmentProjects(orgId, departmentId) {
         if (!departmentId) return [];

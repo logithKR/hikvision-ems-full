@@ -89,7 +89,7 @@ class ProjectRepository extends BaseRepository {
     }
 
     /**
-     * Find all projects for a specific department (for Tech Lead)
+     * Get all projects for a specific department (Manager)
      */
     async findByDepartment(orgId, departmentId) {
         try {

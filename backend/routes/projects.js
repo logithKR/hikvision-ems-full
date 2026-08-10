@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const container = require('../container');
-const { authenticateToken, requireAdminOrBusinessOwner, requireDeptHead } = require('../middleware');
+const { authenticateToken, requireAdminOrBusinessOwner, requireManager } = require('../middleware');
 
 const projectService = container.getProjectService();
 
@@ -249,7 +249,7 @@ router.get('/:id/attendance', authenticateToken, async (req, res) => {
     }
 });
 // ========================================
-// ADMIN / BO / TECH LEAD ROUTES
+// ADMIN / BO / MANAGER ROUTES
 // ========================================
 
 /**
@@ -268,10 +268,10 @@ router.get('/all', authenticateToken, requireAdminOrBusinessOwner, async (req, r
 });
 
 /**
- * Get all projects for a department (Tech Lead)
+ * Get all projects for a department (Manager)
  * GET /api/projects/department/:deptId
  */
-router.get('/department/:deptId', authenticateToken, requireDeptHead, async (req, res) => {
+router.get('/department/:deptId', authenticateToken, requireManager, async (req, res) => {
     try {
         const { organizationId } = req.user;
         const projects = await projectService.getDepartmentProjects(organizationId, req.params.deptId);

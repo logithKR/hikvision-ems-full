@@ -248,22 +248,22 @@ const OrgChartFlow = ({ treeData, expandedNodes, toggleNode, searchTerm, onNodeC
  </ReactFlow>
  )
 }
-
+ 
 // --- 4. Main Page Component ---
-export default function AdminOrgChartPage() {
+export default function BusinessOwnerOrgChartPage() {
  const navigate = useNavigate()
  const [currentUser, setCurrentUser] = useState(null)
  const [expandedNodes, setExpandedNodes] = useState({})
  const [searchTerm, setSearchTerm] = useState("")
  const [selectedNode, setSelectedNode] = useState(null) // Controls side panel
-
+ 
  useEffect(() => {
  if (!isAuthenticated()) { navigate("/login"); return }
  const user = getCurrentUser()
- if (!user || (user.role !=="admin" && user.role !=="system_admin")) { navigate("/login"); return }
+ if (!user || user.role !=="business_owner") { navigate("/login"); return }
  setCurrentUser(user)
  }, [navigate])
-
+ 
  const { data: chartData, isLoading, error, refetch } = useQuery({
  queryKey: ['admin-org-chart'],
  queryFn: async () => {
@@ -470,7 +470,7 @@ export default function AdminOrgChartPage() {
  <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="flex-1 sm:flex-none gap-2 text-indigo-600 hover:bg-indigo-50 rounded-full">
  <RefreshCw className={cn("h-4 w-4 shrink-0", isLoading &&"animate-spin")} /> <span className="hidden sm:inline">Refresh</span>
  </Button>
- <Button onClick={() => navigate("/admin/employees")} className="flex-1 sm:flex-none gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white">
+ <Button onClick={() => navigate("/business-owner/employees")} className="flex-1 sm:flex-none gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white">
  <Users className="h-4 w-4 shrink-0" /> <span className="hidden sm:inline">View List</span>
  </Button>
  </div>
@@ -608,7 +608,7 @@ export default function AdminOrgChartPage() {
  <Button variant="outline" className="w-full bg-card" onClick={() => window.location.href = `mailto:${selectedNode.email}`}>
  <Mail className="mr-2 h-4 w-4" /> Message
  </Button>
- <Button className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => navigate("/admin/employees")}>
+ <Button className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => navigate("/business-owner/employees")}>
  <Users className="mr-2 h-4 w-4" /> Manage
  </Button>
  </div>

@@ -68,27 +68,27 @@ class LeaveService {
       }
 
       // 5. Determine approver based on hierarchy
-      // Tech Lead → leave goes to Business Owner
-      // Employee → leave goes to their Department Head
+      // Manager → leave goes to Business Owner
+      // Employee → leave goes to their Manager
       let approverId = null;
       let approverName = null;
 
-      if (user.isDeptHead) {
-        // Tech Lead's leave goes to Business Owner
+      if (user.isManager) {
+        // Manager's leave goes to Business Owner
         const boUsers = await this.userRepo.findByRole(orgId, 'business_owner');
         if (boUsers.length > 0) {
           approverId = boUsers[0].id;
           approverName = boUsers[0].name;
         }
-        console.log(`🔀 Tech Lead leave routed to Business Owner: ${approverId}`);
+        console.log(`🔀 Manager leave routed to Business Owner: ${approverId}`);
       } else if (user.departmentId) {
-        // Employee → find their Dept Head
-        const deptHead = await this.userRepo.getDeptHead(orgId, user.departmentId);
-        if (deptHead) {
-          approverId = deptHead.id;
-          approverName = deptHead.name;
+        // Employee → find their Manager
+        const manager = await this.userRepo.getManager(orgId, user.departmentId);
+        if (manager) {
+          approverId = manager.id;
+          approverName = manager.name;
         }
-        console.log(`🔀 Employee leave routed to Tech Lead: ${approverId}`);
+        console.log(`🔀 Employee leave routed to Manager: ${approverId}`);
       }
 
       // 6. Create leave request
@@ -783,18 +783,18 @@ class LeaveService {
   }
 
   /**
-   * Get pending leaves for a Tech Lead (leaves where they are the approver)
+   * Get pending leaves for a Manager (leaves where they are the approver)
    * @param {string} orgId - Organization ID
-   * @param {string} hodId - Tech Lead user ID
-   * @returns {Promise<Array>} Pending leaves addressed to this Tech Lead
+   * @param {string} managerId - Manager user ID
+   * @returns {Promise<Array>} Pending leaves addressed to this Manager
    */
-  async getDeptPendingLeaves(orgId, hodId) {
-    const leaves = await this.leaveRepo.findByApprover(orgId, hodId, { status: 'pending' });
+  async getDeptPendingLeaves(orgId, managerId) {
+    const leaves = await this.leaveRepo.findByApprover(orgId, managerId, { status: 'pending' });
     return await this.attachUserDetails(orgId, leaves);
   }
 
   /**
-   * Get leave history for a Tech Lead
+   * Get leave history for a Manager
    * @param {string} orgId - Organization ID
    * @param {string} hodId - Department Head user ID
    * @returns {Promise<Array>} Approved/rejected leaves
@@ -805,8 +805,8 @@ class LeaveService {
 
     let memberIds = [];
 
-    if (user.isDeptHead && user.departmentId) {
-      // Tech Lead: get all department members
+      if (user.isManager && user.departmentId) {
+      // Manager: get all department members
       const members = await this.userRepo.findByDepartment(orgId, user.departmentId);
       memberIds = members.map(m => m.id).filter(id => id !== hodId);
     }

@@ -1,286 +1,653 @@
-import { useEffect, useState, useMemo } from"react"
+import { useEffect, useState, useMemo, useCallback } from"react"
 import { useNavigate } from"react-router-dom"
-import { useQuery, useQueryClient } from"@tanstack/react-query"
+import { useQuery, useQueryClient, useMutation } from"@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from"@/components/ui/card"
 import { Button } from"@/components/ui/button"
 import { Input } from"@/components/ui/input"
+import { Label } from"@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from"@/components/ui/table"
 import { Badge } from"@/components/ui/badge"
-import { Dialog, DialogContent,
- DialogBody, DialogHeader, DialogTitle, DialogTrigger } from"@/components/ui/dialog"
-import { Label } from"@/components/ui/label"
-import { Progress } from"@/components/ui/progress"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from"@/components/ui/select"
+import { Skeleton } from"@/components/ui/skeleton"
 import {
- Users,
- Search,
- Shield,
- UserCheck,
- Trash2,
- Plus,
- RefreshCw,
- AlertCircle,
- Building2,
- Eye,
- EyeOff,
- ArrowLeft,
- Mail,
- User,
- Briefcase,
- ArrowUpDown
+ Dialog, DialogContent, DialogDescription, DialogFooter,
+ DialogHeader, DialogTitle, DialogTrigger, DialogBody
+} from"@/components/ui/dialog"
+import {
+ AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+ AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+ AlertDialogTitle, AlertDialogTrigger
+} from"@/components/ui/alert-dialog"
+import {
+ Users, UserCheck, UserX, Search, Filter, ArrowLeft, RefreshCw,
+ AlertCircle, Edit, Trash2, UserPlus, Building2, ChevronDown,
+ ChevronRight, Mail, Phone, Shield, Eye, X, Save, LayoutGrid, List, Loader2
 } from"lucide-react"
-import { safeRedirect } from"@/lib/redirectUtils"
+import { getCurrentUser, isAuthenticated } from"@/lib/auth"
+import { getValidIdToken } from"@/lib/firebaseClient"
 import { toast } from"sonner"
 
 const getApiBase = () => import.meta.env.VITE_API_URL ||""
-
-const fetchEmployees = async () => {
- const token = sessionStorage.getItem("firebaseToken")
- const base = getApiBase()
- if (!token) throw new Error("Authentication token not found. Please login again.")
-
- // Fetch ONLY active employees/admins to prevent deleted ones from showing up
- const employeesRes = await fetch(`${base}/api/admin/employees?isActive=true`, {
- headers: { Authorization: `Bearer ${token}` },
- })
-
- if (employeesRes.status === 401) throw new Error("SESSION_EXPIRED")
- if (!employeesRes.ok) throw new Error(`Failed to load employees: ${employeesRes.status}`)
-
- const orgEmployees = await employeesRes.json()
- return Array.isArray(orgEmployees) ? orgEmployees : (orgEmployees.employees || [])
-}
 
 export default function BusinessOwnerEmployeesPage() {
  const navigate = useNavigate()
  const queryClient = useQueryClient()
 
  const [currentUser, setCurrentUser] = useState(null)
- const [searchQuery, setSearchQuery] = useState("")
- const [sortConfig, setSortConfig] = useState({ key: null, direction:"asc" })
 
- const [showCreateAdmin, setShowCreateAdmin] = useState(false)
- const [createLoading, setCreateLoading] = useState(false)
- const [showPassword, setShowPassword] = useState(false)
- const [newAdmin, setNewAdmin] = useState({
- name:"",
- email:"",
- password:"",
- department:"",
- position:"",
+ // Search & Filters
+ const [searchTerm, setSearchTerm] = useState("")
+ const [deptFilter, setDeptFilter] = useState("all")
+ const [roleFilter, setRoleFilter] = useState("all")
+ const [statusFilter, setStatusFilter] = useState("all")
+ const [groupByDept, setGroupByDept] = useState(false)
+
+ // Edit Dialog
+ const [editDialogOpen, setEditDialogOpen] = useState(false)
+ const [editingEmployee, setEditingEmployee] = useState(null)
+ const [editForm, setEditForm] = useState({})
+
+ // Detail View Dialog
+ const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+ const [viewingEmployee, setViewingEmployee] = useState(null)
+
+
+
+ // Create Employee Dialog
+ const [createDialogOpen, setCreateDialogOpen] = useState(false)
+ const [createForm, setCreateForm] = useState({
+ name:"", email:"", password:"", department:"", departmentId:"", phone:"", position:"", role:"employee", hikvisionEmployeeId:""
  })
 
+ // Department Management
+ const [deptDialogOpen, setDeptDialogOpen] = useState(false)
+ const [deptForm, setDeptForm] = useState({ name:"", description:"", maxEmployees: 50 })
+ const [deleteDeptConfirmOpen, setDeleteDeptConfirmOpen] = useState(false)
+ const [deptToDelete, setDeptToDelete] = useState(null)
+
+ // Department-specific member creation
+ const [deptMemberDialogOpen, setDeptMemberDialogOpen] = useState(false)
+ const [deptMemberType, setDeptMemberType] = useState("employee") // 'hod', 'employee'
+ const [selectedDeptForMember, setSelectedDeptForMember] = useState(null)
+ const [deptMemberForm, setDeptMemberForm] = useState({
+ name:"", email:"", password:"", phone:"", position:"", hikvisionEmployeeId:""
+ })
+
+ // Auth Check
  useEffect(() => {
- const current = sessionStorage.getItem("currentUser")
- if (!current) {
- safeRedirect(navigate,"/login")
+ if (!isAuthenticated()) {
+ navigate("/login")
  return
  }
- const emp = JSON.parse(current)
- if (emp.role !=="business_owner") {
- toast.error("Unauthorized. Business Owner access required.")
- safeRedirect(navigate,"/login")
+ const user = getCurrentUser()
+ if (!user || user.role !=="business_owner") {
+ navigate("/login")
  return
  }
- setCurrentUser(emp)
+ setCurrentUser(user)
  }, [navigate])
 
+ // ── Fetch All Employees ──────────────────────────
  const { data: employees = [], isLoading: loading, error: queryError } = useQuery({
- queryKey: ['bo-employees'],
- queryFn: fetchEmployees,
- enabled: !!currentUser,
- })
-
- const error = queryError?.message ==="SESSION_EXPIRED"
- ? (() => { setTimeout(() => { sessionStorage.clear(); safeRedirect(navigate,"/login") }, 2000); return"Session expired. Please login again." })()
- : queryError?.message || null
-
- const filteredEmployees = useMemo(() => {
- if (!Array.isArray(employees)) return []
- const query = searchQuery.toLowerCase()
- return employees.filter((emp) =>
- emp.name?.toLowerCase().includes(query) ||
- emp.email?.toLowerCase().includes(query) ||
- emp.department?.toLowerCase().includes(query) ||
- emp.position?.toLowerCase().includes(query)
- )
- }, [searchQuery, employees])
-
- const requestSort = (key) => {
- let direction = 'asc'
- if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc'
- setSortConfig({ key, direction })
- }
-
- const loadEmployees = () => queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
-
- const handleCreateAdmin = async (e) => {
- e.preventDefault()
-
- if (!currentUser) {
- toast.error("User session not found. Please refresh the page.")
- return
- }
-
- if (!newAdmin.password || newAdmin.password.length < 6) {
- toast.error("Password must be at least 6 characters long")
- return
- }
-
- setCreateLoading(true)
- const token = sessionStorage.getItem("firebaseToken")
+ queryKey: ['admin-employees'],
+ queryFn: async () => {
+ const token = await getValidIdToken()
+ if (!token) throw new Error("Authentication failed.")
  const base = getApiBase()
-
- try {
  const response = await fetch(`${base}/api/admin/employees`, {
- method:"POST",
- headers: {
-"Content-Type":"application/json",
- Authorization: `Bearer ${token}`,
- },
- body: JSON.stringify({
- name: newAdmin.name,
- email: newAdmin.email,
- password: newAdmin.password,
- department:"Management", // default for BO admins
- position:"Admin",
- role:"admin",
- organizationId: currentUser.organizationId,
- workingType:"Full-time",
- salary:"0",
- }),
+ headers: { Authorization: `Bearer ${token}` },
  })
-
+ if (!response.ok) throw new Error(`Failed to load employees: ${response.status}`)
  const data = await response.json()
-
- if (response.ok) {
- const createdAdmin = data.employee || data
- const adminEmail = newAdmin.email
- const adminPassword = newAdmin.password
-
- // Invalidate both employees AND dashboard caches so they refresh instantly
- queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
- queryClient.invalidateQueries({ queryKey: ['bo-dashboard'] })
-
- setShowCreateAdmin(false)
- setShowPassword(false)
- setNewAdmin({
- name:"",
- email:"",
- password:"",
+ return data.employees || []
+ },
+ enabled: !!currentUser,
+ staleTime: 30000, // Cache for 30 seconds
  })
 
- toast.success(
- `Admin created successfully! Email: ${adminEmail}, Password: ${adminPassword}. Share these credentials securely with the admin.`,
- { duration: 10000 }
- )
- } else {
- toast.error(`${data.error ||"Failed to create admin"}`)
- }
- } catch (error) {
- console.error("Create admin error:", error)
- toast.error("Network error")
- } finally {
- setCreateLoading(false)
- }
- }
-
- const handleDeleteAdmin = async (adminId, adminName) => {
- // Standard window.confirm is used here. For better UX, we could use a custom dialog,
- // but for now, we'll keep it simple as it's a native browser feature.
- // The key update here is to ensure the rest of the UI remains consistent.
- if (!window.confirm(`Delete admin"${adminName}"? This will deactivate their account.`)) {
- return
- }
-
- // Optimistic Update: Immediately remove from UI before API call finishes
- queryClient.setQueryData(['bo-employees'], (oldData) => {
- if (!oldData) return []
- const list = Array.isArray(oldData) ? oldData : (oldData.employees || [])
- return list.filter(emp => emp.id !== adminId)
- })
-
- const token = sessionStorage.getItem("firebaseToken")
+ // ── Fetch Organization Departments ──────────────────
+ const { data: orgDepartments = [], isLoading: loadingDepts } = useQuery({
+ queryKey: ['admin-departments'],
+ queryFn: async () => {
+ const token = await getValidIdToken()
+ if (!token) throw new Error("Auth failed")
  const base = getApiBase()
+ const res = await fetch(`${base}/api/admin/departments`, {
+ headers: { Authorization: `Bearer ${token}` }
+ })
+ if (!res.ok) throw new Error("Failed to load departments")
+ const data = await res.json()
+ return data.departments || []
+ },
+ enabled: !!currentUser,
+ staleTime: 30000,
+ })
 
- try {
- const response = await fetch(`${base}/api/admin/employees/${adminId}`, {
- method:"DELETE",
+ const error = queryError?.message || null
+ const refreshEmployees = () => queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+ const refreshDepartments = () => queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
+
+ // ── Update Employee Mutation ────────────────────
+ const updateMutation = useMutation({
+ mutationFn: async ({ id, data }) => {
+ const token = await getValidIdToken()
+ const base = getApiBase()
+ const response = await fetch(`${base}/api/admin/employees/${id}`, {
+ method: 'PUT',
  headers: {
  Authorization: `Bearer ${token}`,
+ 'Content-Type': 'application/json',
+ },
+ body: JSON.stringify(data),
+ })
+ if (!response.ok) {
+ const errData = await response.json()
+ throw new Error(errData.error || 'Failed to update employee')
+ }
+ return response.json()
+ },
+ onSuccess: () => {
+ toast.success('Employee updated successfully')
+ queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+ queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+ setEditDialogOpen(false)
+ setEditingEmployee(null)
+ },
+ onError: (err) => {
+ toast.error(err.message)
  },
  })
 
- if (response.ok) {
- // Success - trigger background refresh to be sure
- queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
- queryClient.invalidateQueries({ queryKey: ['bo-dashboard'] })
- toast.success("Admin deleted successfully")
- } else {
- toast.error("Failed to delete admin")
- // Revert optimistic update
- queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
- }
- } catch (error) {
- console.error("Delete admin error:", error)
- toast.error("Network error")
- queryClient.invalidateQueries({ queryKey: ['bo-employees'] })
- }
- }
-
- const admins = Array.isArray(filteredEmployees) ? filteredEmployees.filter((e) => e.role ==="admin") : []
- const regularEmployees = Array.isArray(filteredEmployees) ? filteredEmployees.filter((e) => e.role ==="employee") : []
-
- const sortedRegularEmployees = useMemo(() => {
- if (!Array.isArray(regularEmployees)) return []
- let sortable = [...regularEmployees]
- if (sortConfig.key) {
- sortable.sort((a, b) => {
- const aVal = a[sortConfig.key]?.toString().toLowerCase() || ''
- const bVal = b[sortConfig.key]?.toString().toLowerCase() || ''
- if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
- if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
- return 0
+ // ── Delete Employee Mutation ────────────────────
+ const deleteMutation = useMutation({
+ mutationFn: async (id) => {
+ const token = await getValidIdToken()
+ const base = getApiBase()
+ const response = await fetch(`${base}/api/admin/employees/${id}`, {
+ method: 'DELETE',
+ headers: { Authorization: `Bearer ${token}` },
  })
+ if (!response.ok) {
+ const errData = await response.json()
+ throw new Error(errData.error || 'Failed to delete employee')
  }
- return sortable
- }, [regularEmployees, sortConfig])
+ return response.json()
+ },
+ onSuccess: () => {
+ toast.success('Employee deleted successfully')
+ queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+ queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+ },
+ onError: (err) => {
+ toast.error(err.message)
+ },
+ })
 
- // Debug: Log roles
- console.log("🔍 All employees roles:", filteredEmployees?.map?.(e => ({ name: e.name, role: e.role })))
- console.log("👑 Admins found:", admins.length)
- console.log("👤 Employees found:", regularEmployees.length)
+ // ── Restore Employee Mutation ────────────────────
+ const restoreMutation = useMutation({
+ mutationFn: async (id) => {
+ const token = await getValidIdToken()
+ const base = getApiBase()
+ const response = await fetch(`${base}/api/admin/employees/${id}/restore`, {
+ method: 'POST',
+ headers: { Authorization: `Bearer ${token}` },
+ })
+ if (!response.ok) {
+ const errData = await response.json()
+ throw new Error(errData.error || 'Failed to restore employee')
+ }
+ return response.json()
+ },
+ onSuccess: () => {
+ toast.success('Employee restored successfully')
+ queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+ queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+ },
+ onError: (err) => {
+ toast.error(err.message)
+ },
+ })
 
- if (!currentUser) {
+
+
+ // ── Create Employee Mutation ────────────────────
+ const createMutation = useMutation({
+ mutationFn: async (formData) => {
+ const token = await getValidIdToken()
+ const base = getApiBase()
+ const response = await fetch(`${base}/api/admin/employees`, {
+ method: 'POST',
+ headers: {
+ Authorization: `Bearer ${token}`,
+ 'Content-Type': 'application/json',
+ },
+ body: JSON.stringify(formData),
+ })
+ if (!response.ok) {
+ const errData = await response.json()
+ throw new Error(errData.error || 'Failed to create employee')
+ }
+ return response.json()
+ },
+ onSuccess: () => {
+ toast.success('Employee created successfully')
+ queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+ queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+ setCreateDialogOpen(false)
+ setCreateForm({ name:"", email:"", password:"", department:"", departmentId:"", phone:"", position:"", role:"employee", hikvisionEmployeeId:"" })
+ },
+ onError: (err) => {
+ toast.error(err.message)
+ }
+ })
+
+ const handleCreateEmployee = () => {
+ if (!createForm.name || !createForm.email || !createForm.password) return
+ createMutation.mutate(createForm)
+ }
+
+ // ── Create Department Mutation ──────────────────
+ const createDeptMutation = useMutation({
+ mutationFn: async (data) => {
+ const token = await getValidIdToken()
+ const res = await fetch(`${getApiBase()}/api/admin/departments`, {
+ method: 'POST',
+ headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+ body: JSON.stringify(data)
+ })
+ if (!res.ok) {
+ const errData = await res.json()
+ throw new Error(errData.error || 'Failed to create department')
+ }
+ return res.json()
+ },
+ onSuccess: () => {
+ toast.success('Department created successfully')
+ queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
+ setDeptDialogOpen(false)
+ setDeptForm({ name:"", description:"", maxEmployees: 50 })
+ },
+ onError: (err) => {
+ toast.error(err.message)
+ }
+ })
+
+ // ── Delete Department Mutation ──────────────────
+ const deleteDeptMutation = useMutation({
+ mutationFn: async (id) => {
+ const token = await getValidIdToken()
+ const res = await fetch(`${getApiBase()}/api/admin/departments/${id}`, {
+ method: 'DELETE',
+ headers: { Authorization: `Bearer ${token}` }
+ })
+ if (!res.ok) {
+ const errData = await res.json()
+ throw new Error(errData.error || 'Failed to delete department')
+ }
+ return res.json()
+ },
+ onSuccess: () => {
+ toast.success('Department deleted successfully')
+ queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
+ queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+ setDeleteDeptConfirmOpen(false)
+ setDeptToDelete(null)
+ },
+ onError: (err) => {
+ toast.error(err.message)
+ }
+ })
+
+ // ── Create Dept Member (Manager/Employee) Mutation ──
+ const createDeptMemberMutation = useMutation({
+ mutationFn: async (data) => {
+ const token = await getValidIdToken()
+ const endpoint = deptMemberType === 'manager'
+ ? `/api/admin/departments/${data.departmentId}/manager`
+ : `/api/admin/departments/${data.departmentId}/employees`
+ const res = await fetch(`${getApiBase()}${endpoint}`, {
+ method: 'POST',
+ headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+ body: JSON.stringify(data)
+ })
+ if (!res.ok) {
+ const errData = await res.json()
+ throw new Error(errData.error || `Failed to create ${deptMemberType}`)
+ }
+ return res.json()
+ },
+ onSuccess: () => {
+ toast.success('Department member created successfully')
+ queryClient.invalidateQueries({ queryKey: ['admin-departments'] })
+ queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
+ setDeptMemberDialogOpen(false)
+ setDeptMemberForm({ name:"", email:"", password:"", phone:"", position:"", hikvisionEmployeeId:"" })
+ },
+ onError: (err) => {
+ toast.error(err.message)
+ }
+ })
+
+ // ── Dept member creation handler ───────────────
+ const openDeptMemberDialog = (dept, type) => {
+ setSelectedDeptForMember(dept)
+ setDeptMemberType(type)
+ setDeptMemberForm({
+ name:"", email:"", password:"", phone:"",
+ position: type === 'manager' ? 'Manager' :"",
+ hikvisionEmployeeId:""
+ })
+ setDeptMemberDialogOpen(true)
+ }
+
+ const handleCreateDeptMember = () => {
+ if (!deptMemberForm.name || !deptMemberForm.email || !deptMemberForm.password) return
+ const payload = {
+ ...deptMemberForm,
+ departmentId: selectedDeptForMember?.id
+ }
+ createDeptMemberMutation.mutate(payload)
+ }
+
+ // ── Computed Values ─────────────────────────────
+ const departments = useMemo(() => {
+ const depts = new Set()
+ employees.forEach((emp) => {
+ if (emp.department) depts.add(emp.department)
+ })
+ return Array.from(depts).sort()
+ }, [employees])
+
+
+
+ // ── Client-Side Filtering with useMemo ──────────
+ const filteredEmployees = useMemo(() => {
+ let filtered = employees
+
+ // Search
+ if (searchTerm.trim()) {
+ const term = searchTerm.toLowerCase()
+ filtered = filtered.filter(
+ (emp) =>
+ emp.name?.toLowerCase().includes(term) ||
+ emp.email?.toLowerCase().includes(term) ||
+ emp.department?.toLowerCase().includes(term) ||
+ emp.phone?.toLowerCase().includes(term)
+ )
+ }
+
+ // Department filter
+ if (deptFilter !=="all") {
+ filtered = filtered.filter((emp) => emp.department === deptFilter)
+ }
+
+ // Role filter
+ if (roleFilter !=="all") {
+ filtered = filtered.filter((emp) => emp.role === roleFilter)
+ }
+
+ // Status filter
+ if (statusFilter !=="all") {
+ if (statusFilter ==="active") {
+ filtered = filtered.filter((emp) => emp.isActive !== false)
+ } else {
+ filtered = filtered.filter((emp) => emp.isActive === false)
+ }
+ }
+
+ return filtered
+ }, [employees, searchTerm, deptFilter, roleFilter, statusFilter])
+
+ // ── Grouped by Department ───────────────────────
+ const groupedEmployees = useMemo(() => {
+ if (!groupByDept) return null
+ const groups = {}
+ filteredEmployees.forEach((emp) => {
+ const dept = emp.department ||"Unassigned"
+ if (!groups[dept]) groups[dept] = []
+ groups[dept].push(emp)
+ })
+ return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
+ }, [filteredEmployees, groupByDept])
+
+ // ── Stats ───────────────────────────────────────
+ const stats = useMemo(() => {
+ const total = employees.length
+ const active = employees.filter((e) => e.isActive !== false).length
+ const inactive = total - active
+ return { total, active, inactive }
+ }, [employees])
+
+
+ const getRoleBadge = (role, emp) => {
+ // Check for Manager flag first
+ if (emp?.isManager) return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Manager</Badge>
+ switch (role) {
+ case"admin":
+ return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Admin</Badge>
+ case"business_owner":
+ return <Badge className="bg-blue-600 text-white border-0">Owner</Badge>
+ case"team_lead":
+ return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Manager</Badge>
+
+ default:
+ return <Badge className="bg-secondary text-slate-600 border-border">Employee</Badge>
+ }
+ }
+
+ const openEditDialog = (emp) => {
+ setEditingEmployee(emp)
+ setEditForm({
+ name: emp.name ||"",
+ email: emp.email ||"",
+ department: emp.department ||"",
+ phone: emp.phone || "",
+ position: emp.position || "",
+ role: emp.role || "employee",
+ hikvisionEmployeeId: emp.hikvisionEmployeeId || "",
+ })
+ updateMutation.reset() // clear any previous error
+ setEditDialogOpen(true)
+ }
+
+ const handleSaveEdit = () => {
+ if (!editingEmployee) return
+ const id = editingEmployee.uid || editingEmployee.id
+ updateMutation.mutate({ id, data: editForm })
+ }
+
+ if (!currentUser) return null
+
+ const statCards = [
+ { label:"Total", value: stats.total, sub:"All staff", icon: Users, accent:"text-blue-600", iconBg:"bg-blue-50 border-blue-100" },
+ { label:"Active", value: stats.active, sub:"Currently active", icon: UserCheck, accent:"text-blue-600", iconBg:"bg-blue-50 border-blue-100" },
+ { label:"Inactive", value: stats.inactive, sub:"Deactivated", icon: UserX, accent:"text-muted-foreground", iconBg:"bg-background border-border" },
+ ]
+
+ // ── Render Employee Row ─────────────────────────
+ const renderEmployeeRow = (emp) => {
+ const id = emp.uid || emp.id
+ const isAdmin = emp.role ==="admin"
+ const isOwner = emp.role ==="business_owner"
+
  return (
- <div className="flex min-h-screen items-center justify-center">
- <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+ <TableRow key={id} className="border-b border-slate-50 hover:bg-background/70 transition-colors">
+ {/* Name + Email */}
+ <TableCell className="py-3.5 px-6">
+ <div className="flex items-center gap-3">
+ <div className="h-9 w-9 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 text-xs font-bold shadow-sm">
+ {(emp.name ||"U").substring(0, 2).toUpperCase()}
  </div>
+ <div>
+ <div className="text-sm font-medium text-foreground">{emp.name ||"—"}</div>
+ <div className="text-xs text-muted-foreground">{emp.email ||"—"}</div>
+ </div>
+ </div>
+ </TableCell>
+
+ {/* Role */}
+ <TableCell className="py-3.5">{getRoleBadge(emp.role, emp)}</TableCell>
+
+ {/* Position */}
+ <TableCell className="py-3.5">
+ {emp.position ? (
+ <span className="text-sm text-foreground">{emp.position}</span>
+ ) : (
+ <span className="text-xs text-slate-300 italic">No position</span>
+ )}
+ </TableCell>
+
+ {/* Department */}
+ <TableCell className="py-3.5">
+ {emp.department ? (
+ <span className="text-sm text-foreground">{emp.department}</span>
+ ) : (
+ <span className="text-xs text-slate-300 italic">No dept</span>
+ )}
+ </TableCell>
+
+ {/* Status */}
+ <TableCell className="py-3.5">
+ {emp.isActive !== false ? (
+ <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+ <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+ Active
+ </span>
+ ) : (
+ <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-secondary text-muted-foreground border border-border">
+ <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+ Inactive
+ </span>
+ )}
+ </TableCell>
+
+ {/* Actions */}
+ <TableCell className="py-3.5 text-right">
+ <div className="flex justify-end gap-1.5">
+ {/* View */}
+ <Button
+ variant="ghost"
+ size="sm"
+ className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
+ onClick={() => { setViewingEmployee(emp); setDetailDialogOpen(true) }}
+ title="View Details"
+ >
+ <Eye className="h-4 w-4" />
+ </Button>
+
+ {/* Edit (not for BO or self) */}
+ {!isOwner && (
+ <Button
+ variant="ghost"
+ size="sm"
+ className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
+ onClick={() => openEditDialog(emp)}
+ title="Edit"
+ >
+ <Edit className="h-4 w-4" />
+ </Button>
+ )}
+
+
+
+ {/* Delete/Restore (not for self, BO, or admins) */}
+ {!isOwner && !isAdmin && (
+ emp.isActive === false ? (
+ <AlertDialog>
+ <AlertDialogTrigger asChild>
+ <Button
+ variant="ghost"
+ size="sm"
+ className="h-8 w-8 p-0 text-muted-foreground hover:text-green-600 hover:bg-green-50"
+ title="Restore"
+ disabled={restoreMutation.isPending && restoreMutation.variables === id}
+ >
+ {restoreMutation.isPending && restoreMutation.variables === id ? (
+ <Loader2 className="h-4 w-4 animate-spin" />
+ ) : (
+ <RefreshCw className="h-4 w-4" />
+ )}
+ </Button>
+ </AlertDialogTrigger>
+ <AlertDialogContent>
+ <AlertDialogHeader>
+ <AlertDialogTitle>Restore Employee</AlertDialogTitle>
+ <AlertDialogDescription>
+ Are you sure you want to restore <strong>{emp.name}</strong>? This will reactivate their account and allow them to log in again.
+ </AlertDialogDescription>
+ </AlertDialogHeader>
+ <AlertDialogFooter>
+ <AlertDialogCancel className="border-border">Cancel</AlertDialogCancel>
+ <AlertDialogAction
+ className="bg-green-600 hover:bg-green-700 text-white"
+ onClick={() => restoreMutation.mutate(id)}
+ >
+ Restore
+ </AlertDialogAction>
+ </AlertDialogFooter>
+ </AlertDialogContent>
+ </AlertDialog>
+ ) : (
+ <AlertDialog>
+ <AlertDialogTrigger asChild>
+ <Button
+ variant="ghost"
+ size="sm"
+ className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+ title="Delete"
+ disabled={deleteMutation.isPending && deleteMutation.variables === id}
+ >
+ {deleteMutation.isPending && deleteMutation.variables === id ? (
+ <Loader2 className="h-4 w-4 animate-spin" />
+ ) : (
+ <Trash2 className="h-4 w-4" />
+ )}
+ </Button>
+ </AlertDialogTrigger>
+ <AlertDialogContent>
+ <AlertDialogHeader>
+ <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+ <AlertDialogDescription>
+ Are you sure you want to delete <strong>{emp.name}</strong>? This will deactivate their account.
+ </AlertDialogDescription>
+ </AlertDialogHeader>
+ <AlertDialogFooter>
+ <AlertDialogCancel className="border-border">Cancel</AlertDialogCancel>
+ <AlertDialogAction
+ className="bg-red-600 hover:bg-red-700 text-white"
+ onClick={() => deleteMutation.mutate(id)}
+ >
+ Delete
+ </AlertDialogAction>
+ </AlertDialogFooter>
+ </AlertDialogContent>
+ </AlertDialog>
+ )
+ )}
+ </div>
+ </TableCell>
+ </TableRow>
  )
  }
 
  return (
  <div className="space-y-6 animate-in fade-in-50 duration-500">
- {/* Header */}
- <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
- <div>
- <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-slate-50">
- Organization Employees
- </h1>
- <p className="text-muted-foreground mt-1">
- View all employees and manage admins in your organization
- </p>
- {currentUser.organizationId && (
- <Badge variant="outline" className="mt-2 text-muted-foreground border-border">
- <Building2 className="mr-1 h-3 w-3" />
- Org: {currentUser.organizationId.substring(0, 12)}...
- </Badge>
- )}
+ {/* ── Page Header ─────────────────────────────────── */}
+ <div className="bg-card border border-border rounded-xl px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
+ <div className="flex items-center gap-4">
+ <div className="p-2.5 bg-blue-600 rounded-lg shadow-sm">
+ <Users className="h-5 w-5 text-white" />
  </div>
- <div className="flex items-center gap-3">
+ <div>
+ <h1 className="text-base sm:text-lg font-semibold text-foreground tracking-tight">Employee Management</h1>
+ <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">View, edit, and manage all organization employees</p>
+ </div>
+ </div>
+ <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
  <Button
  variant="outline"
  size="sm"
- onClick={loadEmployees}
+ onClick={() => { refreshEmployees(); refreshDepartments(); }}
  disabled={loading}
  className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
  >
@@ -288,10 +655,27 @@ export default function BusinessOwnerEmployeesPage() {
  Refresh
  </Button>
  <Button
+ size="sm"
+ onClick={() => setCreateDialogOpen(true)}
+ className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm"
+ >
+ <UserPlus className="h-4 w-4" />
+ Add Employee
+ </Button>
+ <Button
+ size="sm"
+ variant="outline"
+ onClick={() => setDeptDialogOpen(true)}
+ className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50"
+ >
+ <Building2 className="h-4 w-4" />
+ New Department
+ </Button>
+ <Button
  variant="outline"
  size="sm"
  onClick={() => navigate("/business-owner/dashboard")}
- className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+ className="gap-2 border-border text-slate-600 hover:bg-background"
  >
  <ArrowLeft className="h-4 w-4" />
  Dashboard
@@ -299,332 +683,835 @@ export default function BusinessOwnerEmployeesPage() {
  </div>
  </div>
 
- {/* Error State */}
+ {/* ── Error ────────────────────────────────────── */}
  {error && (
- <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30">
- <CardContent className="flex items-start gap-3 pt-6">
- <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+ <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+ <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
  <div className="flex-1">
- <p className="font-semibold text-red-900 dark:text-red-100">Error Loading Employees</p>
- <p className="text-sm mt-1 text-red-700 dark:text-red-300">{error}</p>
- <Button variant="outline" size="sm" onClick={loadEmployees} className="mt-3">
- <RefreshCw className="mr-2 h-4 w-4" />
- Retry
+ <p className="text-sm font-semibold text-red-800">Error Loading Employees</p>
+ <p className="text-xs text-red-600 mt-0.5">{error}</p>
+ <Button variant="outline" size="sm" onClick={refreshEmployees} className="mt-3 border-red-200 text-red-700 hover:bg-red-100">
+ <RefreshCw className="mr-2 h-3.5 w-3.5" /> Retry
  </Button>
  </div>
- </CardContent>
- </Card>
+ </div>
  )}
 
- {/* Stats Cards */}
- <div className="grid gap-4 md:grid-cols-3">
- <Card className="border-border shadow-sm">
- <CardHeader className="flex flex-row items-center justify-between pb-2">
- <CardTitle className="text-sm font-medium text-muted-foreground">Total Employees</CardTitle>
- <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
- <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+ {/* ── Stat Cards ───────────────────────────────── */}
+ <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+ {statCards.map(({ label, value, sub, icon: Icon, accent, iconBg }) => (
+ <div key={label} className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
+ <div className="flex items-center justify-between mb-4">
+ <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+ <div className={`p-2 rounded-lg border ${iconBg}`}>
+ <Icon className={`h-4 w-4 ${accent}`} />
  </div>
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-bold text-foreground">
- {regularEmployees.length}
  </div>
- <p className="text-xs text-muted-foreground mt-1">Active employees</p>
- </CardContent>
- </Card>
-
- <Card className="border-border shadow-sm">
- <CardHeader className="flex flex-row items-center justify-between pb-2">
- <CardTitle className="text-sm font-medium text-muted-foreground">Admins</CardTitle>
- <div className="p-2 bg-secondary rounded-lg">
- <Shield className="h-4 w-4 text-slate-600 dark:text-muted-foreground" />
+ <p className={`text-2xl sm:text-3xl font-bold ${accent}`}>{value}</p>
+ <p className="text-xs text-muted-foreground mt-1">{sub}</p>
  </div>
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-bold text-foreground">
- {admins.length}
- </div>
- <p className="text-xs text-muted-foreground mt-1">Managing employees</p>
- </CardContent>
- </Card>
-
- <Card className="border-border shadow-sm">
- <CardHeader className="flex flex-row items-center justify-between pb-2">
- <CardTitle className="text-sm font-medium text-muted-foreground">Total Members</CardTitle>
- <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
- <UserCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
- </div>
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-bold text-foreground">
- {filteredEmployees.length}
- </div>
- <p className="text-xs text-muted-foreground mt-1">All organization members</p>
- </CardContent>
- </Card>
+ ))}
  </div>
 
- {/* Search & Create Admin */}
- <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
- <div className="relative flex-1 max-w-md">
- <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
- <Input
- placeholder="Search by name, email, department..."
- value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- className="pl-10 h-10 bg-card border-border focus:border-blue-500 focus:ring-blue-500"
- />
- </div>
-
- <Dialog open={showCreateAdmin} onOpenChange={setShowCreateAdmin}>
- <DialogTrigger asChild>
- <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all">
- <Plus className="mr-2 h-4 w-4" />
- Create Admin
+ {/* ── Department Cards Section ──────────────────── */}
+ {orgDepartments.length > 0 && (
+ <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+ <div className="flex items-center justify-between mb-4">
+ <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+ <Building2 className="h-4 w-4 text-purple-600" /> Departments ({orgDepartments.length})
+ </h2>
+ <Button size="sm" variant="outline" onClick={() => setDeptDialogOpen(true)} className="h-7 text-xs gap-1.5 border-purple-200 text-purple-700 hover:bg-purple-50">
+ <Building2 className="h-3 w-3" /> New
  </Button>
- </DialogTrigger>
- <DialogContent className="sm:max-w-[450px]">
- <DialogHeader>
- <DialogTitle className="flex items-center gap-2">
- <Shield className="h-5 w-5 text-blue-600" />
- Create New Admin
- </DialogTitle>
- <p className="text-sm text-muted-foreground mt-2">
- Create a new admin account for your organization.
- </p>
- </DialogHeader>
- <form onSubmit={handleCreateAdmin} className="space-y-4 mt-4">
- <div className="space-y-2">
- <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
- <div className="relative">
- <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
- <Input
- id="name"
- value={newAdmin.name}
- onChange={(e) => setNewAdmin((s) => ({ ...s, name: e.target.value }))}
- placeholder="John Doe"
- required
- disabled={createLoading}
- className="pl-10"
- />
  </div>
+ <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+ {orgDepartments.map((dept) => (
+ <div key={dept.id} className="border border-border rounded-lg p-4 hover:border-blue-200 hover:shadow-sm transition-all bg-gradient-to-br from-white to-slate-50">
+ <div className="flex items-start justify-between">
+ <div className="flex-1">
+ <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+ <Building2 className="h-3.5 w-3.5 text-blue-600" />
+ {dept.name}
+ </h3>
+ {dept.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{dept.description}</p>}
  </div>
- <div className="space-y-2">
- <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
- <div className="relative">
- <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
- <Input
- id="email"
- type="email"
- value={newAdmin.email}
- onChange={(e) => setNewAdmin((s) => ({ ...s, email: e.target.value }))}
- placeholder="john@example.com"
- required
- disabled={createLoading}
- className="pl-10"
- />
- </div>
- </div>
- <div className="space-y-2">
- <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
- <div className="relative">
- <Input
- id="password"
- type={showPassword ?"text" :"password"}
- value={newAdmin.password}
- onChange={(e) => setNewAdmin((s) => ({ ...s, password: e.target.value }))}
- placeholder="Minimum 6 characters"
- minLength={6}
- required
- disabled={createLoading}
- className="pr-10"
- />
- <button
- type="button"
- onClick={() => setShowPassword(!showPassword)}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-600"
- disabled={createLoading}
- >
- {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
- </button>
- </div>
- <p className="text-xs text-muted-foreground">Share this password securely with the admin</p>
- </div>
- <div className="flex justify-end gap-2 pt-4">
- <Button
- type="button"
- variant="outline"
- onClick={() => {
- setShowCreateAdmin(false)
- setShowPassword(false)
- setNewAdmin({ name:"", email:"", password:"" })
- }}
- disabled={createLoading}
- >
- Cancel
+ <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => { setDeptToDelete(dept); setDeleteDeptConfirmOpen(true); }}>
+ <Trash2 className="h-3.5 w-3.5" />
  </Button>
- <Button
- type="submit"
- disabled={createLoading}
- className="bg-blue-600 hover:bg-blue-700 text-white"
- >
- {createLoading ? (
- <>
- <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
- Creating...
- </>
+ </div>
+ {/* Department Stats */}
+ <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-muted-foreground">
+ <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {dept.memberCount || 0}/{dept.maxEmployees || '∞'} members</span>
+ {dept.managerName ? (
+ <span className="flex items-center gap-1 text-purple-600 font-medium"><Shield className="h-3 w-3" /> Manager: {dept.managerName}</span>
  ) : (
-"Create Admin"
+ <span className="flex items-center gap-1 text-amber-500"><AlertCircle className="h-3 w-3" /> No Manager</span>
  )}
- </Button>
  </div>
- </form>
- </DialogContent>
- </Dialog>
+ {dept.createdAt && (
+ <p className="text-[10px] text-muted-foreground mt-2">Created {new Date(dept.createdAt).toLocaleDateString()}</p>
+ )}
+ {/* Action Buttons */}
+ <div className="flex gap-2 mt-3">
+ {!dept.managerId ? (
+ <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(dept, 'manager')}>
+ <Shield className="h-3 w-3 mr-1" /> Assign Manager
+ </Button>
+ ) : (
+ <Button size="sm" variant="outline" className="h-7 text-xs flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openDeptMemberDialog(dept, 'employee')}>
+ <UserPlus className="h-3 w-3 mr-1" /> Employee
+ </Button>
+ )}
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+
+ {/* ── Search & Filters ──────────────────────────── */}
+ <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+ <div className="px-6 py-4 border-b border-border">
+ <div className="flex flex-col lg:flex-row gap-4">
+ {/* Search */}
+ <div className="relative flex-1">
+ <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+ <Input
+ type="text"
+ placeholder="Search by name, email, department, phone..."
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ className="pl-10 border-border focus-visible:ring-blue-500 bg-background hover:bg-card transition-colors"
+ />
  </div>
 
- {/* Admins Table */}
- <Card className="border-border shadow-sm overflow-hidden">
- <CardHeader className="bg-background/50 border-b border-border">
- <CardTitle className="flex items-center gap-2 text-base text-foreground">
- <Shield className="h-4 w-4 text-muted-foreground" />
- Admins ({admins.length})
- </CardTitle>
- </CardHeader>
- <CardContent className="p-0">
- {loading ? (
- <div className="flex items-center justify-center py-12">
- <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
- <p className="ml-3 text-sm text-muted-foreground">Loading admins...</p>
- </div>
- ) : admins.length === 0 ? (
- <div className="flex flex-col items-center justify-center py-12 text-center">
- <div className="p-4 bg-background rounded-full mb-4">
- <Shield className="h-8 w-8 text-slate-300" />
- </div>
- <p className="text-sm text-muted-foreground">No admins found. Create one to start managing employees.</p>
- </div>
- ) : (
- <Table>
- <TableHeader>
- <TableRow className="bg-background/50 hover:bg-background/50">
- <TableHead className="font-semibold text-slate-600">Name</TableHead>
- <TableHead className="font-semibold text-slate-600">Email</TableHead>
- <TableHead className="font-semibold text-slate-600">Department</TableHead>
- <TableHead className="font-semibold text-slate-600">Position</TableHead>
- <TableHead className="font-semibold text-slate-600">Role</TableHead>
- <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
- </TableRow>
- </TableHeader>
- <TableBody>
- {admins.map((admin) => (
- <TableRow key={admin.id} className="hover:bg-background/50 transition-colors">
- <TableCell className="font-medium text-foreground">{admin.name}</TableCell>
- <TableCell className="text-slate-600">{admin.email}</TableCell>
- <TableCell className="text-slate-600">{admin.department ||"-"}</TableCell>
- <TableCell className="text-slate-600">{admin.position ||"Admin"}</TableCell>
- <TableCell>
- <Badge variant="secondary" className="bg-secondary text-foreground hover:bg-slate-200 border-0">
- <Shield className="mr-1 h-3 w-3" />
- Admin
- </Badge>
- </TableCell>
- <TableCell className="text-right">
+ {/* Filter Dropdowns */}
+ <div className="flex gap-2 flex-wrap">
+ <Select value={deptFilter} onValueChange={setDeptFilter}>
+ <SelectTrigger className="w-full sm:w-[150px] border-border text-sm">
+ <Building2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+ <SelectValue placeholder="Department" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="all">All Depts</SelectItem>
+ {departments.map((dept) => (
+ <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+ ))}
+ </SelectContent>
+ </Select>
+
+ <Select value={roleFilter} onValueChange={setRoleFilter}>
+ <SelectTrigger className="w-full sm:w-[140px] border-border text-sm">
+ <Shield className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+ <SelectValue placeholder="Role" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="all">All Roles</SelectItem>
+ <SelectItem value="employee">Employee</SelectItem>
+ <SelectItem value="team_lead">Manager</SelectItem>
+ <SelectItem value="admin">Admin</SelectItem>
+ <SelectItem value="business_owner">Owner</SelectItem>
+ </SelectContent>
+ </Select>
+
+ <Select value={statusFilter} onValueChange={setStatusFilter}>
+ <SelectTrigger className="w-full sm:w-[130px] border-border text-sm">
+ <SelectValue placeholder="Status" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="all">All Status</SelectItem>
+ <SelectItem value="active">Active</SelectItem>
+ <SelectItem value="inactive">Inactive</SelectItem>
+ </SelectContent>
+ </Select>
+
+
+ {/* Group By Dept Toggle */}
+ <Button
+ variant={groupByDept ?"default" :"outline"}
+ size="sm"
+ className={groupByDept
+ ?"bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+ :"border-border text-slate-600 hover:bg-blue-50 hover:text-blue-600 gap-1.5"
+ }
+ onClick={() => setGroupByDept(!groupByDept)}
+ >
+ <LayoutGrid className="h-3.5 w-3.5" />
+ Group
+ </Button>
+
+ {/* Clear Filters */}
+ {(searchTerm || deptFilter !=="all" || roleFilter !=="all" || statusFilter !=="all") && (
  <Button
  variant="ghost"
  size="sm"
- className="text-red-600 hover:text-red-700 hover:bg-red-50"
- onClick={() => handleDeleteAdmin(admin.id, admin.name)}
+ className="text-muted-foreground hover:text-red-500 gap-1"
+ onClick={() => {
+ setSearchTerm("")
+ setDeptFilter("all")
+ setRoleFilter("all")
+ setStatusFilter("all")
+ }}
  >
- <Trash2 className="mr-1 h-4 w-4" />
- Delete
+ <X className="h-3.5 w-3.5" />
+ Clear
  </Button>
- </TableCell>
- </TableRow>
- ))}
- </TableBody>
- </Table>
  )}
- </CardContent>
- </Card>
+ </div>
+ </div>
 
- {/* Employees Table */}
- <Card className="border-border shadow-sm overflow-hidden">
- <CardHeader className="bg-background/50 border-b border-border">
- <div className="flex items-center justify-between">
- <CardTitle className="flex items-center gap-2 text-base text-foreground">
- <Users className="h-4 w-4 text-muted-foreground" />
- Employees ({regularEmployees.length})
- </CardTitle>
- <p className="text-xs text-muted-foreground">
- View-only. Admins manage employee details.
+ {/* Active Filter Count */}
+ <div className="flex items-center gap-2 mt-3">
+ <span className="text-xs text-muted-foreground">
+ Showing <span className="font-semibold text-foreground">{filteredEmployees.length}</span> of{""}
+ <span className="font-semibold text-foreground">{employees.length}</span> employees
+ </span>
+ </div>
+ </div>
+
+ {/* ── Table ──────────────────────────────────── */}
+ {loading ? (
+ <div className="flex items-center justify-center py-16 gap-3">
+ <RefreshCw className="h-5 w-5 animate-spin text-blue-600" />
+ <span className="text-sm text-muted-foreground">Loading employees…</span>
+ </div>
+ ) : filteredEmployees.length === 0 ? (
+ <div className="flex flex-col items-center justify-center py-16 text-center">
+ <div className="p-4 bg-secondary rounded-full mb-3">
+ <Users className="h-7 w-7 text-muted-foreground" />
+ </div>
+ <p className="text-sm font-medium text-slate-600">No employees found</p>
+ <p className="text-xs text-muted-foreground mt-1">
+ {searchTerm || deptFilter !=="all" || roleFilter !=="all"
+ ?"Try adjusting your search or filters."
+ :"No employees in this organization yet."}
  </p>
  </div>
- </CardHeader>
- <CardContent className="p-0">
- {loading ? (
- <div className="flex items-center justify-center py-12">
- <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
- <p className="ml-3 text-sm text-muted-foreground">Loading employees...</p>
+ ) : groupByDept && groupedEmployees ? (
+ // ── Grouped View ──────────────────────────
+ <div className="divide-y divide-slate-100">
+ {groupedEmployees.map(([dept, emps]) => {
+ // Find matching org department for CRUD actions
+ const orgDept = orgDepartments.find(d => d.name === dept)
+ return (
+ <div key={dept}>
+ <div className="px-6 py-3 bg-background/80 border-b border-border flex items-center justify-between">
+ <div className="flex items-center gap-2">
+ <Building2 className="h-4 w-4 text-blue-600" />
+ <span className="text-sm font-semibold text-foreground">{dept}</span>
+ <Badge className="ml-2 bg-blue-50 text-blue-700 border-blue-200 text-xs">{emps.length}</Badge>
  </div>
- ) : regularEmployees.length === 0 ? (
- <div className="flex flex-col items-center justify-center py-12 text-center">
- <div className="p-4 bg-background rounded-full mb-4">
- <Users className="h-8 w-8 text-slate-300" />
+ {orgDept && (
+ <div className="flex items-center gap-2">
+ {!orgDept.managerId ? (
+ <Button size="sm" variant="outline" className="h-7 text-xs border-purple-200 text-purple-700 hover:bg-purple-50" onClick={() => openDeptMemberDialog(orgDept, 'manager')}>
+ <Shield className="h-3 w-3 mr-1" /> Assign Manager
+ </Button>
+ ) : (
+ <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openDeptMemberDialog(orgDept, 'employee')}>
+ <UserPlus className="h-3 w-3 mr-1" /> Employee
+ </Button>
+ )}
+ <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => { setDeptToDelete(orgDept); setDeleteDeptConfirmOpen(true); }}>
+ <Trash2 className="h-3.5 w-3.5" />
+ </Button>
  </div>
- <p className="text-sm text-muted-foreground">No employees found.</p>
+ )}
+ </div>
+ <Table>
+ <TableBody>
+ {emps.map((emp) => renderEmployeeRow(emp))}
+ </TableBody>
+ </Table>
+ </div>
+ )
+ })}
  </div>
  ) : (
+ // ── Flat Table View ───────────────────────
+ <div className="overflow-x-auto">
  <Table>
  <TableHeader>
- <TableRow className="bg-background/50 hover:bg-background/50">
- <TableHead className="font-semibold text-slate-600 cursor-pointer hover:bg-secondary transition-colors" onClick={() => requestSort("name")}>
- <div className="flex items-center gap-1">Name <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></div>
- </TableHead>
- <TableHead className="font-semibold text-slate-600 cursor-pointer hover:bg-secondary transition-colors" onClick={() => requestSort("email")}>
- <div className="flex items-center gap-1">Email <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></div>
- </TableHead>
- <TableHead className="font-semibold text-slate-600 cursor-pointer hover:bg-secondary transition-colors" onClick={() => requestSort("department")}>
- <div className="flex items-center gap-1">Department <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></div>
- </TableHead>
- <TableHead className="font-semibold text-slate-600 cursor-pointer hover:bg-secondary transition-colors" onClick={() => requestSort("position")}>
- <div className="flex items-center gap-1">Position <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></div>
- </TableHead>
- <TableHead className="font-semibold text-slate-600 cursor-pointer hover:bg-secondary transition-colors" onClick={() => requestSort("workingType")}>
- <div className="flex items-center gap-1">Type <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></div>
- </TableHead>
- <TableHead className="font-semibold text-slate-600 cursor-pointer hover:bg-secondary transition-colors" onClick={() => requestSort("isActive")}>
- <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></div>
- </TableHead>
+ <TableRow className="bg-background border-b border-border hover:bg-background">
+ <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3 px-6">Employee</TableHead>
+ <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Role</TableHead>
+ <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Position</TableHead>
+ <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Department</TableHead>
+
+ <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3">Status</TableHead>
+ <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide py-3 text-right">Actions</TableHead>
  </TableRow>
  </TableHeader>
  <TableBody>
- {sortedRegularEmployees.map((emp) => (
- <TableRow key={emp.id} className="hover:bg-background/50 transition-colors">
- <TableCell className="font-medium text-foreground">{emp.name}</TableCell>
- <TableCell className="text-slate-600">{emp.email}</TableCell>
- <TableCell className="text-slate-600">{emp.department ||"-"}</TableCell>
- <TableCell className="text-slate-600">{emp.position ||"-"}</TableCell>
- <TableCell className="text-slate-600">{emp.workingType ||"-"}</TableCell>
- <TableCell>
- <Badge
- variant="outline"
- className={
- emp.isActive === false
- ?"bg-red-50 text-red-700 border-red-200"
- :"bg-blue-50 text-blue-700 border-blue-200"
- }
- >
- {emp.isActive === false ? 'Inactive' : 'Active'}
- </Badge>
- </TableCell>
- </TableRow>
- ))}
+ {filteredEmployees.map((emp) => renderEmployeeRow(emp))}
  </TableBody>
  </Table>
+ </div>
  )}
- </CardContent>
- </Card>
+ </div>
+
+ {/* ── Edit Employee Dialog ──────────────────────── */}
+ <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+ <DialogContent className="sm:max-w-md">
+ <DialogHeader>
+ <DialogTitle className="flex items-center gap-2">
+ <Edit className="h-5 w-5 text-blue-600" />
+ Edit Employee
+ </DialogTitle>
+ <DialogDescription>
+ Update details for {editingEmployee?.name ||"employee"}.
+ </DialogDescription>
+ </DialogHeader>
+ <DialogBody>
+ <div className="space-y-4 py-4">
+ <div className="space-y-2">
+ <Label htmlFor="edit-name" className="text-sm font-medium text-foreground">Name</Label>
+ <Input
+ id="edit-name"
+ value={editForm.name ||""}
+ onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="edit-email" className="text-sm font-medium text-foreground">Email</Label>
+ <Input
+ id="edit-email"
+ value={editForm.email ||""}
+ onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Department</Label>
+ <Select
+ value={editForm.department ||"__none__"}
+ onValueChange={(val) => {
+ if (val ==="__none__") {
+ setEditForm({ ...editForm, department:"", departmentId: null })
+ } else {
+ const selectedDept = orgDepartments.find(d => d.name === val);
+ setEditForm({ ...editForm, department: val, departmentId: selectedDept?.id || null })
+ }
+ }}
+ >
+ <SelectTrigger className="border-border">
+ <SelectValue placeholder="Select department" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="__none__">
+ <span className="text-muted-foreground italic">No Department</span>
+ </SelectItem>
+ {orgDepartments.map((dept) => (
+ <SelectItem key={dept.id} value={dept.name}>
+ <div className="flex items-center gap-2">
+ <Building2 className="h-3 w-3 text-blue-500" />
+ <span>{dept.name}</span>
+ </div>
+ </SelectItem>
+ ))}
+ </SelectContent>
+ </Select>
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="edit-phone" className="text-sm font-medium text-foreground">Phone</Label>
+ <Input
+ id="edit-phone"
+ value={editForm.phone ||""}
+ onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="edit-position" className="text-sm font-medium text-foreground">Position</Label>
+ <Input
+ id="edit-position"
+ placeholder="e.g. Designer, Developer"
+ value={editForm.position ||""}
+ onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="edit-hikvision" className="text-sm font-medium text-foreground flex items-center gap-1.5">
+ Hikvision Employee ID
+ <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+ </Label>
+ <Input
+ id="edit-hikvision"
+ placeholder="e.g. EMP001"
+ value={editForm.hikvisionEmployeeId ||""}
+ onChange={(e) => setEditForm({ ...editForm, hikvisionEmployeeId: e.target.value })}
+ className="border-border focus-visible:ring-blue-500 font-mono"
+ />
+ <p className="text-[10px] text-muted-foreground">Must match the Employee No. registered on the Hikvision device.</p>
+ </div>
+ </div>
+ {/* Show error inline inside the dialog */}
+ {updateMutation.error && (
+ <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mx-0 mt-2">
+ <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+ <p className="text-xs text-red-700">{updateMutation.error.message}</p>
+ </div>
+ )}
+ </DialogBody>
+ <DialogFooter>
+ <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-border">
+ Cancel
+ </Button>
+ <Button
+ onClick={handleSaveEdit}
+ disabled={updateMutation.isPending}
+ className="bg-blue-600 hover:bg-blue-700 text-white"
+ >
+ {updateMutation.isPending ? (
+ <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+ ) : (
+ <><Save className="mr-2 h-4 w-4" /> Save Changes</>
+ )}
+ </Button>
+ </DialogFooter>
+ </DialogContent>
+ </Dialog>
+
+ {/* ── View Details Dialog ──────────────────────── */}
+ <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+ <DialogContent className="sm:max-w-lg">
+ <DialogHeader>
+ <DialogTitle className="flex items-center gap-2">
+ <Eye className="h-5 w-5 text-blue-600" />
+ Employee Details
+ </DialogTitle>
+ </DialogHeader>
+ <DialogBody>
+ {viewingEmployee && (
+ <div className="space-y-4 py-2">
+ <div className="flex items-center gap-4 pb-4 border-b border-border">
+ <div className="h-14 w-14 rounded-full bg-blue-100 border-2 border-blue-200 flex items-center justify-center text-blue-700 text-lg font-bold">
+ {(viewingEmployee.name ||"U").substring(0, 2).toUpperCase()}
+ </div>
+ <div>
+ <h3 className="text-lg font-semibold text-foreground">{viewingEmployee.name}</h3>
+ <p className="text-sm text-muted-foreground">{viewingEmployee.email}</p>
+ </div>
+ </div>
+
+ <div className="grid grid-cols-2 gap-4">
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Role</span>
+ <div className="mt-1">{getRoleBadge(viewingEmployee.role, viewingEmployee)}</div>
+ </div>
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Position</span>
+ <p className="mt-1 text-sm text-foreground">{viewingEmployee.position ||"—"}</p>
+ </div>
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Status</span>
+ <div className="mt-1">
+ {viewingEmployee.isActive !== false ? (
+ <Badge className="bg-blue-50 text-blue-700 border-blue-200">Active</Badge>
+ ) : (
+ <Badge className="bg-secondary text-muted-foreground border-border">Inactive</Badge>
+ )}
+ </div>
+ </div>
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Department</span>
+ <p className="mt-1 text-sm text-foreground">{viewingEmployee.department ||"—"}</p>
+ </div>
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Phone</span>
+ <p className="mt-1 text-sm text-foreground">{viewingEmployee.phone ||"—"}</p>
+ </div>
+
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Employee ID</span>
+ <p className="mt-1 text-xs font-mono text-muted-foreground break-all">{viewingEmployee.uid || viewingEmployee.id ||"—"}</p>
+ </div>
+ {viewingEmployee.hikvisionEmployeeId && (
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Hikvision ID</span>
+ <p className="mt-1 text-sm text-foreground font-mono">{viewingEmployee.hikvisionEmployeeId}</p>
+ </div>
+ )}
+ {viewingEmployee.createdAt && (
+ <div>
+ <span className="text-xs font-medium text-muted-foreground uppercase">Created</span>
+ <p className="mt-1 text-sm text-foreground">
+ {viewingEmployee.createdAt?._seconds
+ ? new Date(viewingEmployee.createdAt._seconds * 1000).toLocaleDateString()
+ : new Date(viewingEmployee.createdAt).toLocaleDateString()}
+ </p>
+ </div>
+ )}
+ </div>
+ </div>
+ )}
+ </DialogBody>
+ </DialogContent>
+ </Dialog>
+
+
+ {/* ── Create Employee Dialog ───────────────────── */}
+ <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+ <DialogContent className="sm:max-w-lg">
+ <DialogHeader>
+ <DialogTitle className="flex items-center gap-2">
+ <UserPlus className="h-5 w-5 text-blue-600" />
+ Add New Employee
+ </DialogTitle>
+ <DialogDescription>
+ Create a new employee account. They will receive login credentials.
+ </DialogDescription>
+ </DialogHeader>
+ <DialogBody>
+
+ {createMutation.isError && (
+ <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+ <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+ <p className="text-xs text-red-700">{createMutation.error?.message}</p>
+ </div>
+ )}
+
+ <div className="space-y-4 py-2">
+ <div className="grid grid-cols-2 gap-4">
+ <div className="space-y-2">
+ <Label htmlFor="create-name" className="text-sm font-medium text-foreground">
+ Name <span className="text-red-500">*</span>
+ </Label>
+ <Input
+ id="create-name"
+ placeholder="Full name"
+ value={createForm.name}
+ onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="create-email" className="text-sm font-medium text-foreground">
+ Email <span className="text-red-500">*</span>
+ </Label>
+ <Input
+ id="create-email"
+ type="email"
+ placeholder="email@company.com"
+ value={createForm.email}
+ onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="create-password" className="text-sm font-medium text-foreground">
+ Password <span className="text-red-500">*</span>
+ </Label>
+ <Input
+ id="create-password"
+ type="password"
+ placeholder="Minimum 6 characters"
+ value={createForm.password}
+ onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="grid grid-cols-2 gap-4">
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Department</Label>
+ <div className="relative">
+ <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+ <Select
+ value={createForm.department || "__none__"}
+ onValueChange={(val) => {
+ if (val ==="__none__") {
+ setCreateForm({ ...createForm, department:"", departmentId: null })
+ } else {
+ const selectedDept = orgDepartments.find(d => d.name === val);
+ setCreateForm({ ...createForm, department: val, departmentId: selectedDept?.id || null })
+ }
+ }}
+ >
+ <SelectTrigger className="border-border focus-visible:ring-blue-500 pl-9">
+ <SelectValue placeholder="e.g. Sales, Engineering" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="__none__">
+ <span className="text-muted-foreground italic">No Department</span>
+ </SelectItem>
+ {orgDepartments.map((dept) => (
+ <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+ ))}
+ </SelectContent>
+ </Select>
+ </div>
+ </div>
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Role</Label>
+ <Select
+ value={createForm.role}
+ onValueChange={(val) => setCreateForm({ ...createForm, role: val })}
+ >
+ <SelectTrigger className="border-border">
+ <SelectValue placeholder="Select role" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="employee">
+ <div className="flex items-center gap-2">
+ <Users className="h-3 w-3 text-muted-foreground" />
+ <span>Employee</span>
+ </div>
+ </SelectItem>
+ </SelectContent>
+ </Select>
+ </div>
+ </div>
+ <div className="grid grid-cols-2 gap-4">
+ <div className="space-y-2">
+ <Label htmlFor="create-position" className="text-sm font-medium text-foreground">Position / Designation</Label>
+ <Input
+ id="create-position"
+ placeholder="e.g. Designer, Developer"
+ value={createForm.position}
+ onChange={(e) => setCreateForm({ ...createForm, position: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="create-phone" className="text-sm font-medium text-foreground">Phone</Label>
+ <Input
+ id="create-phone"
+ placeholder="+91 ..."
+ value={createForm.phone}
+ onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ </div>
+
+
+ {/* Hikvision Device Link */}
+ <div className="space-y-2">
+ <Label htmlFor="create-hikvision" className="text-sm font-medium text-foreground flex items-center gap-1.5">
+ Hikvision Employee ID
+ <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+ </Label>
+ <Input
+ id="create-hikvision"
+ placeholder="e.g. EMP001"
+ value={createForm.hikvisionEmployeeId}
+ onChange={(e) => setCreateForm({ ...createForm, hikvisionEmployeeId: e.target.value })}
+ className="border-border focus-visible:ring-blue-500 font-mono"
+ />
+ <p className="text-[10px] text-muted-foreground">Enter the Employee No. from the Hikvision device to link attendance automatically. Leave blank if not using a device.</p>
+ </div>
+ </div>
+ </DialogBody>
+ <DialogFooter>
+ <Button variant="outline" onClick={() => setCreateDialogOpen(false)} className="border-border">
+ Cancel
+ </Button>
+ <Button
+ onClick={handleCreateEmployee}
+ disabled={createMutation.isPending || !createForm.name || !createForm.email || !createForm.password}
+ className="bg-blue-600 hover:bg-blue-700 text-white"
+ >
+ {createMutation.isPending ? (
+ <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+ ) : (
+ <><UserPlus className="mr-2 h-4 w-4" /> Create Employee</>
+ )}
+ </Button>
+ </DialogFooter>
+ </DialogContent>
+ </Dialog>
+ {/* ── Create Department Dialog ───────────────── */}
+ <Dialog open={deptDialogOpen} onOpenChange={setDeptDialogOpen}>
+ <DialogContent className="sm:max-w-md">
+ <DialogHeader>
+ <DialogTitle className="flex items-center gap-2">
+ <Building2 className="h-5 w-5 text-purple-600" />
+ Create Department
+ </DialogTitle>
+ <DialogDescription>
+ Add a new department to your organization.
+ </DialogDescription>
+ </DialogHeader>
+ <DialogBody>
+
+ {createDeptMutation.isError && (
+ <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+ <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+ <p className="text-xs text-red-700">{createDeptMutation.error?.message}</p>
+ </div>
+ )}
+
+ <div className="space-y-4 py-4">
+ <div className="space-y-2">
+ <Label htmlFor="dept-name" className="text-sm font-medium text-foreground">
+ Department Name <span className="text-red-500">*</span>
+ </Label>
+ <Input
+ id="dept-name"
+ placeholder="e.g. Engineering"
+ value={deptForm.name}
+ onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ autoFocus
+ />
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="dept-desc" className="text-sm font-medium text-foreground">Description</Label>
+ <Input
+ id="dept-desc"
+ placeholder="Brief description of the department"
+ value={deptForm.description}
+ onChange={(e) => setDeptForm({ ...deptForm, description: e.target.value })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ <div className="space-y-2">
+ <Label htmlFor="dept-max" className="text-sm font-medium text-foreground">Max Employees</Label>
+ <Input
+ id="dept-max"
+ type="number"
+ min="1"
+ value={deptForm.maxEmployees}
+ onChange={(e) => setDeptForm({ ...deptForm, maxEmployees: parseInt(e.target.value) || undefined })}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ </div>
+ </div>
+ </DialogBody>
+ <DialogFooter>
+ <Button variant="outline" onClick={() => setDeptDialogOpen(false)} className="border-border">Cancel</Button>
+ <Button
+ onClick={() => createDeptMutation.mutate(deptForm)}
+ disabled={!deptForm.name || createDeptMutation.isPending}
+ className="bg-purple-600 hover:bg-purple-700 text-white"
+ >
+ {createDeptMutation.isPending ? (
+ <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+ ) : (
+ <><Building2 className="mr-2 h-4 w-4" /> Create Department</>
+ )}
+ </Button>
+ </DialogFooter>
+ </DialogContent>
+ </Dialog>
+
+ {/* ── Add Dept Member (Manager/Employee) Dialog ── */}
+ <Dialog open={deptMemberDialogOpen} onOpenChange={setDeptMemberDialogOpen}>
+ <DialogContent className="sm:max-w-lg">
+ <DialogHeader>
+ <DialogTitle className="flex items-center gap-2">
+ {deptMemberType === 'manager' ? <Shield className="h-5 w-5 text-purple-600" /> : <UserPlus className="h-5 w-5 text-blue-600" />}
+ Add {deptMemberType === 'manager' ? 'Manager' : 'Employee'}
+ </DialogTitle>
+ <DialogDescription>
+ Create a new {deptMemberType} for <strong>{selectedDeptForMember?.name}</strong>.
+ </DialogDescription>
+ </DialogHeader>
+ <DialogBody>
+
+ {createDeptMemberMutation.isError && (
+ <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+ <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+ <p className="text-xs text-red-700">{createDeptMemberMutation.error?.message}</p>
+ </div>
+ )}
+
+ <div className="space-y-4 py-2">
+ <div className="grid grid-cols-2 gap-4">
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Name <span className="text-red-500">*</span></Label>
+ <Input placeholder="Full name" value={deptMemberForm.name} onChange={(e) => setDeptMemberForm({ ...deptMemberForm, name: e.target.value })} className="border-border focus-visible:ring-blue-500" />
+ </div>
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Email <span className="text-red-500">*</span></Label>
+ <Input type="email" placeholder="email@company.com" value={deptMemberForm.email} onChange={(e) => setDeptMemberForm({ ...deptMemberForm, email: e.target.value })} className="border-border focus-visible:ring-blue-500" />
+ </div>
+ </div>
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Password <span className="text-red-500">*</span></Label>
+ <Input type="password" placeholder="Minimum 6 characters" value={deptMemberForm.password} onChange={(e) => setDeptMemberForm({ ...deptMemberForm, password: e.target.value })} className="border-border focus-visible:ring-blue-500" />
+ <p className="text-xs text-muted-foreground">Provide this to the employee securely.</p>
+ </div>
+ <div className="grid grid-cols-2 gap-4">
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Position</Label>
+ <Input
+ placeholder="e.g. Senior Developer"
+ value={deptMemberForm.position}
+ onChange={(e) => setDeptMemberForm({ ...deptMemberForm, position: e.target.value })}
+ disabled={deptMemberType === 'manager'}
+ className="border-border focus-visible:ring-blue-500"
+ />
+ {deptMemberType === 'manager' && <p className="text-[10px] text-purple-500 font-medium">Locked for Manager role</p>}
+ </div>
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground">Phone</Label>
+ <Input placeholder="+91 ..." value={deptMemberForm.phone} onChange={(e) => setDeptMemberForm({ ...deptMemberForm, phone: e.target.value })} className="border-border focus-visible:ring-blue-500" />
+ </div>
+ </div>
+
+
+ {/* Hikvision Device Link */}
+ <div className="space-y-2">
+ <Label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+ Hikvision Employee ID
+ <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+ </Label>
+ <Input
+ placeholder="e.g. EMP001"
+ value={deptMemberForm.hikvisionEmployeeId ||""}
+ onChange={(e) => setDeptMemberForm({ ...deptMemberForm, hikvisionEmployeeId: e.target.value })}
+ className="border-border focus-visible:ring-blue-500 font-mono"
+ />
+ <p className="text-[10px] text-muted-foreground">Enter the Employee No. from the Hikvision device to auto-link attendance. Leave blank if not using a device.</p>
+ </div>
+ </div>
+ </DialogBody>
+ <DialogFooter>
+ <Button variant="outline" onClick={() => setDeptMemberDialogOpen(false)} className="border-border">Cancel</Button>
+ <Button
+ onClick={handleCreateDeptMember}
+ disabled={createDeptMemberMutation.isPending || !deptMemberForm.name || !deptMemberForm.email || !deptMemberForm.password}
+ className={deptMemberType === 'manager' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}
+ >
+ {createDeptMemberMutation.isPending ? (
+ <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+ ) : (
+ <><UserPlus className="mr-2 h-4 w-4" /> Create Account</>
+ )}
+ </Button>
+ </DialogFooter>
+ </DialogContent>
+ </Dialog>
+
+ {/* ── Delete Department Confirmation ────────────── */}
+ <AlertDialog open={deleteDeptConfirmOpen} onOpenChange={setDeleteDeptConfirmOpen}>
+ <AlertDialogContent>
+ <AlertDialogHeader>
+ <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+ <AlertCircle className="h-5 w-5" /> Delete Department
+ </AlertDialogTitle>
+ <AlertDialogDescription>
+ Are you sure you want to delete <strong>{deptToDelete?.name}</strong>?<br /><br />
+ <span className="text-red-600 font-medium">This will remove the department and unassign all its members.</span>
+ </AlertDialogDescription>
+ </AlertDialogHeader>
+ <AlertDialogFooter>
+ <AlertDialogCancel className="border-border">Cancel</AlertDialogCancel>
+ <AlertDialogAction
+ className="bg-red-600 hover:bg-red-700 text-white"
+ onClick={() => deptToDelete && deleteDeptMutation.mutate(deptToDelete.id)}
+ >
+ Delete Department
+ </AlertDialogAction>
+ </AlertDialogFooter>
+ </AlertDialogContent>
+ </AlertDialog>
+
+ {/* Department cards are now rendered above the employee list */}
  </div>
  )
 }

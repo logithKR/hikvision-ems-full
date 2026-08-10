@@ -42,6 +42,7 @@ import BOLeaveRequestsPage from '@/app/business-owner/leave-requests/page'
 import BOProjectsPage from '@/app/business-owner/projects/page'
 import BOProjectDetailsPage from '@/app/employee/projects/[id]/page' // Reusing employee details page
 import BOProfilePage from '@/app/business-owner/profile/page'
+import BOOrgChartPage from '@/app/business-owner/org-chart/page'
 
 // System Admin Pages
 import SADashboardPage from '@/app/system-admin/dashboard/page'
@@ -95,6 +96,7 @@ export default function App() {
  <Route path="projects" element={<BOProjectsPage />} />
  <Route path="projects/:id" element={<BOProjectDetailsPage />} />
  <Route path="profile" element={<BOProfilePage />} />
+ <Route path="org-chart" element={<BOOrgChartPage />} />
  <Route index element={<Navigate to="dashboard" replace />} />
  </Route>
 

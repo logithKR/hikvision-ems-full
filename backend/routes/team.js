@@ -1,14 +1,14 @@
 /**
  * team.js
  * 
- * Routes for Team Lead / HOD management.
- * HODs can view dept members/attendance and approve/reject dept leaves.
+ * Routes for Manager (Department Manager) management.
+ * Managers can view dept members/attendance and approve/reject dept leaves.
  */
 
 const express = require('express');
 const router = express.Router();
 const container = require('../container');
-const { authenticateToken, requireTeamLead, requireDeptHead } = require('../middleware');
+const { authenticateToken, requireManager } = require('../middleware');
 
 // Get services
 const userRepo = container.getUserRepo();
@@ -20,12 +20,12 @@ const leaveService = container.getLeaveService();
 router.use(authenticateToken);
 
 // ============================================
-// TEAM MEMBER ROUTES (HOD)
+// TEAM MEMBER ROUTES (MANAGER)
 // ============================================
 
 /**
  * GET /api/team/members
- * Get dept members (for HOD) and project members (for Project Leads)
+ * Get dept members (for Manager) and project members (for Project Leads)
  */
 router.get('/members', async (req, res) => {
     try {
@@ -35,8 +35,8 @@ router.get('/members', async (req, res) => {
         let memberIds = new Set();
         let membersMap = new Map();
 
-        // 1. If HOD, get all department members
-        if (user.isDeptHead && user.departmentId) {
+        // 1. If Manager, get all department members
+        if (user.isManager && user.departmentId) {
             const deptMembers = await userRepo.findByDepartment(organizationId, user.departmentId);
             deptMembers.forEach(m => {
                 if (m.id !== uid) {
@@ -83,7 +83,7 @@ router.get('/members', async (req, res) => {
 });
 
 // ============================================
-// ATTENDANCE ROUTES (HOD)
+// ATTENDANCE ROUTES (MANAGER)
 // ============================================
 
 /**
@@ -99,7 +99,7 @@ router.get('/attendance', async (req, res) => {
         const user = await userRepo.findById(organizationId, uid);
         let memberIds = new Set();
         
-        if (user.isDeptHead && user.departmentId) {
+        if (user.isManager && user.departmentId) {
             const deptMembers = await userRepo.findByDepartment(organizationId, user.departmentId);
             deptMembers.forEach(m => { if (m.id !== uid) memberIds.add(m.id); });
         }
@@ -145,7 +145,7 @@ router.get('/attendance/weekly', async (req, res) => {
         const user = await userRepo.findById(organizationId, uid);
         let memberIds = new Set();
         
-        if (user.isDeptHead && user.departmentId) {
+        if (user.isManager && user.departmentId) {
             const deptMembers = await userRepo.findByDepartment(organizationId, user.departmentId);
             deptMembers.forEach(m => { if (m.id !== uid) memberIds.add(m.id); });
         }
@@ -173,20 +173,20 @@ router.get('/attendance/weekly', async (req, res) => {
 });
 
 // ============================================
-// HOD DEPARTMENT VIEW
+// MANAGER DEPARTMENT VIEW
 // ============================================
 
 /**
  * GET /api/team/department/members
- * Get all department members (HOD only)
+ * Get all department members (Manager only)
  */
 router.get('/department/members', async (req, res) => {
     try {
         const { organizationId, uid } = req.user;
         const user = await userRepo.findById(organizationId, uid);
 
-        if (!user.isDeptHead || !user.departmentId) {
-            return res.status(403).json({ error: 'Only Department Heads can access this' });
+        if (!user.isManager || !user.departmentId) {
+            return res.status(403).json({ error: 'Only Managers can access this' });
         }
 
         const members = await userRepo.findByDepartment(organizationId, user.departmentId);
@@ -203,7 +203,7 @@ router.get('/department/members', async (req, res) => {
 
 /**
  * GET /api/team/department/attendance
- * Get department attendance (HOD only)
+ * Get department attendance (Manager only)
  */
 router.get('/department/attendance', async (req, res) => {
     try {
@@ -211,8 +211,8 @@ router.get('/department/attendance', async (req, res) => {
         const date = req.query.date || new Date().toISOString().split('T')[0];
         const user = await userRepo.findById(organizationId, uid);
 
-        if (!user.isDeptHead || !user.departmentId) {
-            return res.status(403).json({ error: 'Only Department Heads can access this' });
+        if (!user.isManager || !user.departmentId) {
+            return res.status(403).json({ error: 'Only Managers can access this' });
         }
 
         // Get all dept members and their attendance
@@ -229,12 +229,12 @@ router.get('/department/attendance', async (req, res) => {
 });
 
 // ============================================
-// LEAVE MANAGEMENT (HOD approves dept leaves)
+// LEAVE MANAGEMENT (Manager approves dept leaves)
 // ============================================
 
 /**
  * GET /api/team/leaves/pending
- * Get pending leave requests assigned to me (HOD or legacy team lead)
+ * Get pending leave requests assigned to me (Manager)
  */
 router.get('/leaves/pending', async (req, res) => {
     try {
@@ -249,7 +249,7 @@ router.get('/leaves/pending', async (req, res) => {
 
 /**
  * POST /api/team/leaves/:id/approve
- * Approve a leave request (as HOD)
+ * Approve a leave request (as Manager)
  */
 router.post('/leaves/:id/approve', async (req, res) => {
     try {
@@ -274,7 +274,7 @@ router.post('/leaves/:id/approve', async (req, res) => {
 
 /**
  * POST /api/team/leaves/:id/reject
- * Reject a leave request (as HOD)
+ * Reject a leave request (as Manager)
  */
 router.post('/leaves/:id/reject', async (req, res) => {
     try {

@@ -88,7 +88,7 @@ export default function TeamDashboard() {
  }
 
  const getRoleBadge = (member) => {
- if (member.isDeptHead) return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"><Star className="w-3 h-3 mr-1" /> Tech Lead</Badge>
+ if (member.isManager) return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"><Star className="w-3 h-3 mr-1" /> Manager</Badge>
  return <Badge variant="outline" className="text-[10px]"><User className="w-3 h-3 mr-1" /> Employee</Badge>
  }
 
@@ -107,11 +107,11 @@ export default function TeamDashboard() {
  <Users className="h-6 w-6 text-blue-600" /> My Team
  </h1>
  <p className="text-muted-foreground mt-1">
- Overview of your {currentUser?.isDeptHead ? 'department' : 'direct reports'}
+ Overview of your {currentUser?.isManager ? 'department' : 'direct reports'}
  </p>
  </div>
  <div className="flex gap-2">
- {currentUser?.isDeptHead && (
+ {currentUser?.isManager && (
   <Button
   onClick={() => navigate("/employee/team/leaves")}
   className={`gap-2 ${teamData.pendingLeaves.length > 0 ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
@@ -136,7 +136,7 @@ export default function TeamDashboard() {
  </CardHeader>
  <CardContent>
  <div className="text-2xl font-bold">{teamData.members.length}</div>
- <p className="text-xs text-muted-foreground">{currentUser?.isDeptHead ? 'Department strength' : 'Direct reports'}</p>
+ <p className="text-xs text-muted-foreground">{currentUser?.isManager ? 'Department strength' : 'Direct reports'}</p>
  </CardContent>
  </Card>
  <Card>
@@ -186,7 +186,7 @@ export default function TeamDashboard() {
  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
  {teamData.members.map(member => (
  <Card key={member.id} className="overflow-hidden hover:shadow-md transition-all">
- <div className={`h-1 w-full ${member.isDeptHead ? 'bg-amber-400' : 'bg-slate-200'}`} />
+ <div className={`h-1 w-full ${member.isManager ? 'bg-amber-400' : 'bg-slate-200'}`} />
  <CardContent className="p-4 flex items-center gap-4">
  <Avatar className="h-12 w-12 border-2 border-border">
  <AvatarFallback className="bg-secondary text-foreground font-bold">{getInitials(member.name)}</AvatarFallback>

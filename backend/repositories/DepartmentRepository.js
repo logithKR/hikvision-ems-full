@@ -31,8 +31,8 @@ class DepartmentRepository extends BaseRepository {
                 id: docRef.id,
                 name: data.name,
                 description: data.description || '',
-                headId: data.headId || null,
-                headName: data.headName || null,
+                managerId: data.managerId || null,
+                managerName: data.managerName || null,
                 maxEmployees: data.maxEmployees || 50,
                 memberCount: 0,
                 organizationId: orgId,
@@ -174,17 +174,17 @@ class DepartmentRepository extends BaseRepository {
     }
 
     /**
-     * Set department head
+     * Set department manager
      */
-    async setHead(orgId, deptId, headId, headName) {
-        return this.update(orgId, deptId, { headId, headName });
+    async setManager(orgId, deptId, managerId, managerName) {
+        return this.update(orgId, deptId, { managerId, managerName });
     }
 
     /**
-     * Clear department head
+     * Clear department manager
      */
-    async clearHead(orgId, deptId) {
-        return this.update(orgId, deptId, { headId: null, headName: null });
+    async clearManager(orgId, deptId) {
+        return this.update(orgId, deptId, { managerId: null, managerName: null });
     }
 }
 

@@ -62,9 +62,8 @@ class UserRepository extends BaseRepository {
         // 🆔 Integrations
         hikvisionEmployeeId: data.hikvisionEmployeeId || '',
 
-        // 👥 Team mapping
-        isDeptHead: data.isDeptHead || false,
-        isTeamLead: data.isDeptHead || false, // backward compat
+        // 👥 Manager flag
+        isManager: data.isManager || false,
 
         // 👨‍💼 For Admins: Track their quota usage
         ...(data.role === 'admin' && {
@@ -119,8 +118,7 @@ class UserRepository extends BaseRepository {
         isActive: true,
         departmentId: data.departmentId || null,
         hikvisionEmployeeId: data.hikvisionEmployeeId || '',
-        isDeptHead: data.isDeptHead || false,
-        isTeamLead: data.isDeptHead || false,
+        isManager: data.isManager || false,
         ...(data.role === 'admin' && {
           adminSettings: {
             employeesCreated: 0,
@@ -577,16 +575,16 @@ class UserRepository extends BaseRepository {
   }
 
   /**
-   * Get department head for a department
+   * Get department manager for a department
    * @param {string} orgId
    * @param {string} deptId
    * @returns {Promise<Object|null>}
    */
-  async getDeptHead(orgId, deptId) {
+  async getManager(orgId, deptId) {
     try {
       const snapshot = await this.getCollection(orgId)
         .where('departmentId', '==', deptId)
-        .where('isDeptHead', '==', true)
+        .where('isManager', '==', true)
         .where('isActive', '==', true)
         .limit(1)
         .get();
@@ -594,26 +592,26 @@ class UserRepository extends BaseRepository {
       const doc = snapshot.docs[0];
       return { id: doc.id, ...doc.data() };
     } catch (error) {
-      console.error(`❌ [UserRepository] GetDeptHead error:`, error);
-      throw new Error(`Failed to get dept head: ${error.message}`);
+      console.error(`❌ [UserRepository] GetManager error:`, error);
+      throw new Error(`Failed to get manager: ${error.message}`);
     }
   }
 
   /**
-   * Get all department heads in an organization
+   * Get all managers in an organization
    * @param {string} orgId
    * @returns {Promise<Array>}
    */
-  async getDeptHeads(orgId) {
+  async getManagers(orgId) {
     try {
       const snapshot = await this.getCollection(orgId)
-        .where('isDeptHead', '==', true)
+        .where('isManager', '==', true)
         .where('isActive', '==', true)
         .get();
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
-      console.error(`❌ [UserRepository] GetDeptHeads error:`, error);
-      throw new Error(`Failed to get dept heads: ${error.message}`);
+      console.error(`❌ [UserRepository] GetManagers error:`, error);
+      throw new Error(`Failed to get managers: ${error.message}`);
     }
   }
   /**

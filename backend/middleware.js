@@ -126,9 +126,7 @@ async function authenticateToken(req, res, next) {
       department: employee.department,
       departmentId: employee.departmentId || null,
       organizationId: organizationId || employee.organizationId,
-      isTeamLead: employee.isTeamLead || false,
-      isDeptHead: employee.isDeptHead || false,
-      directReports: employee.directReports || []
+      isManager: employee.isManager || false
     };
 
     return next();
@@ -224,35 +222,22 @@ function requireOrganization(organizationId) {
 }
 
 /**
- * Require TEAM LEAD access (Manager or HOD)
+ * Require MANAGER access (Department Manager)
  * (Also allows Admin and Business Owner)
  */
-function requireTeamLead(req, res, next) {
+function requireManager(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized: Authentication required' });
   }
 
-  const isAuthorized = req.user.isTeamLead || req.user.isDeptHead ||
+  const isAuthorized = req.user.isManager ||
     req.user.role === 'admin' || req.user.role === 'business_owner';
 
   if (!isAuthorized) {
     return res.status(403).json({
-      error: 'Forbidden: Team Lead access required',
+      error: 'Forbidden: Manager access required',
       yourRole: req.user.role
     });
-  }
-  next();
-}
-
-/**
- * Require Department Head only
- */
-function requireDeptHead(req, res, next) {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  if (!req.user.isDeptHead && !['admin', 'business_owner'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Forbidden: Department Head access required' });
   }
   next();
 }
@@ -263,8 +248,7 @@ module.exports = {
   requireBusinessOwner,
   requireAdminOrBusinessOwner,
   requireSystemAdmin,
-  requireTeamLead,
-  requireDeptHead,
+  requireManager,
   requireEmployee,
   requireOrganization
 };

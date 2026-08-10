@@ -60,7 +60,7 @@ router.post('/employees', authenticateToken, requireAdminOrBusinessOwner, async 
     // Create user (quota validation and permission check happens in service)
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department, departmentId: req.body.departmentId, position, salary, workingType, skills, address, emergencyContact, phone, role: targetRole, isDeptHead: req.body.isDeptHead || false, hikvisionEmployeeId: hikvisionEmployeeId || null },
+      { name, email, password, department, departmentId: req.body.departmentId, position, salary, workingType, skills, address, emergencyContact, phone, role: targetRole, isManager: req.body.isManager || false, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId,
       creatorRole
     );
@@ -200,7 +200,7 @@ router.get('/employees/:id', authenticateToken, requireAdminOrBusinessOwner, asy
  * UPDATE Employee (ADMIN ONLY)
  * PUT /api/admin/employees/:id
  */
-router.put('/employees/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/employees/:id', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   console.log(`📝 PUT /api/admin/employees/${req.params.id} - Update employee`);
   try {
     const { organizationId } = req.user;
@@ -268,7 +268,7 @@ router.delete('/employees/:id', authenticateToken, requireAdminOrBusinessOwner, 
  * RESTORE Employee (ADMIN ONLY)
  * POST /api/admin/employees/:id/restore
  */
-router.post('/employees/:id/restore', authenticateToken, requireAdmin, async (req, res) => {
+router.post('/employees/:id/restore', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   console.log(`♻️ POST /api/admin/employees/${req.params.id}/restore`);
   try {
     const { organizationId } = req.user;
@@ -645,7 +645,7 @@ router.get('/organization', authenticateToken, requireAdminOrBusinessOwner, asyn
  * CREATE Department
  * POST /api/admin/departments
  */
-router.post('/departments', authenticateToken, requireAdmin, async (req, res) => {
+router.post('/departments', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   try {
     const { organizationId, uid } = req.user;
     const { name, description, maxEmployees } = req.body;
@@ -699,7 +699,7 @@ router.get('/departments/:id', authenticateToken, requireAdminOrBusinessOwner, a
  * UPDATE Department
  * PUT /api/admin/departments/:id
  */
-router.put('/departments/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/departments/:id', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   try {
     const { organizationId } = req.user;
     const { name, description, maxEmployees } = req.body;
@@ -714,7 +714,7 @@ router.put('/departments/:id', authenticateToken, requireAdmin, async (req, res)
  * DELETE Department (deletes all members!)
  * DELETE /api/admin/departments/:id
  */
-router.delete('/departments/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.delete('/departments/:id', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   try {
     const { organizationId, uid } = req.user;
     const deptId = req.params.id;
@@ -769,10 +769,10 @@ router.delete('/departments/:id', authenticateToken, requireAdmin, async (req, r
 });
 
 /**
- * CREATE Department Head
- * POST /api/admin/departments/:id/hod
+ * CREATE Department Manager
+ * POST /api/admin/departments/:id/manager
  */
-router.post('/departments/:id/hod', authenticateToken, requireAdmin, async (req, res) => {
+router.post('/departments/:id/manager', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   try {
     const { organizationId, uid: creatorId, role: creatorRole } = req.user;
     const deptId = req.params.id;
@@ -785,15 +785,15 @@ router.post('/departments/:id/hod', authenticateToken, requireAdmin, async (req,
     // Check dept exists
     const dept = await departmentRepo.findById(organizationId, deptId);
     if (!dept) return res.status(404).json({ error: 'Department not found' });
-    if (dept.headId) return res.status(400).json({ error: 'Department already has a HOD. Remove existing HOD first.' });
+    if (dept.managerId) return res.status(400).json({ error: 'Department already has a Manager. Remove existing Manager first.' });
 
     const employee = await employeeService.createEmployee(
       organizationId,
-      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Tech Lead', isDeptHead: true, role: 'employee', phone, hikvisionEmployeeId: hikvisionEmployeeId || null },
+      { name, email, password, department: dept.name, departmentId: deptId, position: position || 'Manager', isManager: true, role: 'employee', phone, hikvisionEmployeeId: hikvisionEmployeeId || null },
       creatorId, creatorRole
     );
 
-    res.status(201).json({ message: 'Tech Lead created', employee });
+    res.status(201).json({ message: 'Manager created', employee });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -803,7 +803,7 @@ router.post('/departments/:id/hod', authenticateToken, requireAdmin, async (req,
  * CREATE Employee in Department
  * POST /api/admin/departments/:id/employees
  */
-router.post('/departments/:id/employees', authenticateToken, requireAdmin, async (req, res) => {
+router.post('/departments/:id/employees', authenticateToken, requireAdminOrBusinessOwner, async (req, res) => {
   try {
     const { organizationId, uid: creatorId, role: creatorRole } = req.user;
     const deptId = req.params.id;
@@ -815,7 +815,7 @@ router.post('/departments/:id/employees', authenticateToken, requireAdmin, async
 
     const dept = await departmentRepo.findById(organizationId, deptId);
     if (!dept) return res.status(404).json({ error: 'Department not found' });
-    if (!dept.headId) return res.status(400).json({ error: 'Create a Tech Lead first before adding employees' });
+    if (!dept.managerId) return res.status(400).json({ error: 'Create a Manager first before adding employees' });
 
     // Check member limit
     const limit = await departmentRepo.checkMemberLimit(organizationId, deptId);
@@ -862,16 +862,16 @@ router.get('/org-chart', authenticateToken, requireAdminOrBusinessOwner, async (
     const chart = departments.map(dept => {
       const deptMembers = allUsers.filter(u => u.departmentId === dept.id);
       
-      const hod = deptMembers.find(u => u.isDeptHead);
-      if (hod) assignedUserIds.add(hod.id);
+      const manager = deptMembers.find(u => u.isManager);
+      if (manager) assignedUserIds.add(manager.id);
 
-      // Department employees are those who haven't been assigned as HOD
+      // Department employees are those who haven't been assigned as Manager
       const employees = deptMembers.filter(u => !assignedUserIds.has(u.id));
       employees.forEach(e => assignedUserIds.add(e.id));
 
       return {
         department: { id: dept.id, name: dept.name, maxEmployees: dept.maxEmployees, memberCount: dept.memberCount },
-        hod: formatUser(hod),
+        manager: formatUser(manager),
         employees: employees.map(e => formatUser(e))
       };
     });

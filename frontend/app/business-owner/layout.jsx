@@ -17,7 +17,8 @@ import {
  Menu,
  X,
  Shield,
- FolderKanban
+ FolderKanban,
+ GitBranch
 } from"lucide-react"
 import { getCurrentUser, isAuthenticated, logoutUser } from"@/lib/auth"
 import { cn } from"@/lib/utils"
@@ -72,6 +73,11 @@ export default function BusinessOwnerLayout({ children }) {
  href:"/business-owner/dashboard",
  label:"Dashboard",
  icon: LayoutDashboard,
+ },
+ {
+ href:"/business-owner/org-chart",
+ label:"Org Chart",
+ icon: GitBranch,
  },
  {
  href:"/business-owner/employees",
@@ -243,7 +249,7 @@ export default function BusinessOwnerLayout({ children }) {
 
  {/* Main Content */}
  <main className="lg:pl-64 pt-16 pb-20 lg:pt-0 lg:pb-0 min-h-screen transition-all bg-secondary">
- <div className="p-4 md:p-6 lg:p-8 space-y-6">
+ <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
  {children || <Outlet />}
  </div>
  </main>

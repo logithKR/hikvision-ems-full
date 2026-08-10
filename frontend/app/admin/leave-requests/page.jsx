@@ -80,7 +80,7 @@ export default function AdminLeaveRequestsPage() {
 
  const getRoleBadge = (role) => {
  switch (role) {
- case 'team_lead': return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"><Star className="w-3 h-3 mr-1" /> Tech Lead</Badge>
+ case 'manager': return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"><Star className="w-3 h-3 mr-1" /> Manager</Badge>
  default: return <Badge variant="outline" className="text-[10px]"><User className="w-3 h-3 mr-1" /> Employee</Badge>
  }
  }

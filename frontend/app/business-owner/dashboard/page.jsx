@@ -1,4 +1,4 @@
-import { useEffect, useState } from"react"
+import { useEffect, useState, useMemo } from"react"
 import { useNavigate } from"react-router-dom"
 import { useQuery, useQueryClient } from"@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from"@/components/ui/card"
@@ -6,51 +6,18 @@ import { Button } from"@/components/ui/button"
 import { Badge } from"@/components/ui/badge"
 import { Progress } from"@/components/ui/progress"
 import {
- Building2, Users, Shield, UserCheck, FileText,
- RefreshCw, AlertCircle, ChevronRight,
- Settings, Eye, Clock, CalendarDays
+ Users, UserCheck, UserX, FileText, RefreshCw, AlertCircle,
+ Clock, TrendingUp, Calendar, Plus, Briefcase
 } from"lucide-react"
 import { getCurrentUser, isAuthenticated } from"@/lib/auth"
 import { getValidIdToken } from"@/lib/firebaseClient"
-
-const getApiBase = () => {
- const url = import.meta.env.VITE_API_URL ||""
- return url.endsWith('/api') ? url : `${url}/api`
-}
-
-// Fetcher function (extracted so useQuery can call it)
-const fetchDashboardData = async () => {
- const token = await getValidIdToken()
- if (!token) throw new Error("Authentication token not found. Please login again.")
- const base = getApiBase()
-
- const [dashboardRes, adminQuotaRes] = await Promise.all([
- fetch(`${base}/admin/dashboard/stats`, {
- headers: { Authorization: `Bearer ${token}` },
- }),
- fetch(`${base}/admin/admins/quota-status`, {
- headers: { Authorization: `Bearer ${token}` },
- })
- ])
-
- const dashboardData = dashboardRes.ok ? await dashboardRes.json() : null
- if (dashboardRes.status === 401) throw new Error("SESSION_EXPIRED")
- if (!dashboardRes.ok) {
- const errData = await dashboardRes.json().catch(() => ({}))
- throw new Error(errData.error ||"Failed to load dashboard")
- }
-
- const adminQuotas = adminQuotaRes.ok ? (await adminQuotaRes.json()).admins || [] : []
-
- return { dashboardData, adminQuotas }
-}
 
 export default function BusinessOwnerDashboardPage() {
  const navigate = useNavigate()
  const queryClient = useQueryClient()
  const [currentUser, setCurrentUser] = useState(null)
 
- // Auth check
+ // Auth Check
  useEffect(() => {
  if (!isAuthenticated()) {
  navigate("/login")
@@ -64,391 +31,361 @@ export default function BusinessOwnerDashboardPage() {
  setCurrentUser(user)
  }, [navigate])
 
- // TanStack Query — cached, auto-refetch when stale
- const { data, isLoading: loading, error: queryError } = useQuery({
- queryKey: ['bo-dashboard'],
- queryFn: fetchDashboardData,
+ const { data: dashboardData = null, isLoading: loading, error: queryError } = useQuery({
+ queryKey: ['admin-dashboard'],
+ queryFn: async () => {
+ const token = await getValidIdToken()
+ if (!token) throw new Error("Authentication failed. Please login again.")
+ const apiBase = import.meta.env.VITE_API_URL ||""
+ const response = await fetch(`${apiBase}/api/admin/dashboard/stats`, {
+ headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+ })
+ if (response.status === 401) throw new Error("Session expired. Please login again.")
+ if (!response.ok) { const errData = await response.json(); throw new Error(errData.error ||"Failed to load dashboard") }
+ return response.json()
+ },
  enabled: !!currentUser,
  })
 
- const dashboardData = data?.dashboardData || null
- const adminQuotas = data?.adminQuotas || []
- const error = queryError?.message ==="SESSION_EXPIRED"
- ? (() => { setTimeout(() => navigate("/login"), 2000); return"Session expired. Please login again." })()
- : queryError?.message || null
+ // Fetch employees for position distribution
+ const { data: allEmployees = [] } = useQuery({
+ queryKey: ['admin-employees'],
+ queryFn: async () => {
+ const token = await getValidIdToken()
+ if (!token) throw new Error("Auth failed")
+ const apiBase = import.meta.env.VITE_API_URL ||""
+ const response = await fetch(`${apiBase}/api/admin/employees`, {
+ headers: { Authorization: `Bearer ${token}` },
+ })
+ if (!response.ok) throw new Error("Failed to load employees")
+ const data = await response.json()
+ return data.employees || []
+ },
+ enabled: !!currentUser,
+ staleTime: 30000,
+ })
 
- const loadDashboard = () => queryClient.invalidateQueries({ queryKey: ['bo-dashboard'] })
+ // Role + Position distribution computed from employees
+ const positionStats = useMemo(() => {
+ const roleCounts = {}
+ const positionCounts = {}
+ const systemRoles = ['employee', 'admin', 'business_owner', 'team_lead', 'system_admin']
+ allEmployees.forEach((emp) => {
+ if (emp.isActive === false) return
+ // Count by system role
+ const role = emp.role || 'employee'
+ const roleLabel = role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+ roleCounts[roleLabel] = (roleCounts[roleLabel] || 0) + 1
+ // Count by position (only if it's a real position, not a default role name)
+ const pos = emp.position
+ if (pos && !systemRoles.includes(pos.toLowerCase()) && pos.toLowerCase() !== 'employee') {
+ positionCounts[pos] = (positionCounts[pos] || 0) + 1
+ }
+ })
+ const roleEntries = Object.entries(roleCounts).sort((a, b) => b[1] - a[1])
+ const posEntries = Object.entries(positionCounts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+ return { roles: roleEntries, positions: posEntries }
+ }, [allEmployees])
 
- // Calculate organization quota percentage
- const getOrgQuotaPercentage = () => {
- if (!dashboardData?.quota?.utilization?.employees) return 0
- const { current, max } = dashboardData.quota.utilization.employees
- if (!max) return 0
- return Math.min(Math.round((current / max) * 100), 100)
+ const maxRoleCount = positionStats.roles.length > 0 ? positionStats.roles[0][1] : 1
+ const maxPosCount = positionStats.positions.length > 0 ? positionStats.positions[0][1] : 1
+
+ const error = queryError?.message || null
+ const loadDashboard = () => queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+
+ const getQuotaPercentage = () => {
+ if (!dashboardData?.quota) return 0
+ const raw = dashboardData.quota
+ const created = raw.quota?.created ?? raw.employeesCreated ?? 0
+ const limit = raw.quota?.limit ?? raw.canCreateUpTo ?? 0
+ if (!limit) return 0
+ return Math.min(Math.round((created / limit) * 100), 100)
  }
 
  if (loading) {
  return (
- <div className="flex items-center justify-center min-h-[400px]">
+ <div className="flex items-center justify-center min-h-[60vh]">
  <div className="text-center">
- <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
- <p className="text-muted-foreground">Loading dashboard...</p>
+ <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-3 text-blue-600" />
+ <p className="text-sm text-muted-foreground">Loading dashboard…</p>
  </div>
  </div>
  )
  }
 
  const employees = dashboardData?.employees || { total: 0, active: 0, inactive: 0 }
- const attendance = dashboardData?.attendance || { present: 0, absent: 0, onLeave: 0 }
+ const attendance = dashboardData?.attendance || { presentCount: 0, totalRecords: 0 }
  const leaves = dashboardData?.leaves || { pendingCount: 0, pending: [] }
- const quota = dashboardData?.quota || {}
+ const rawQuota = dashboardData?.quota || {}
+ const quota = {
+ employeesCreated: rawQuota.quota?.created ?? rawQuota.employeesCreated ?? 0,
+ canCreateUpTo: rawQuota.quota?.limit ?? rawQuota.canCreateUpTo ?? 0,
+ remaining: rawQuota.quota?.remaining ?? rawQuota.remaining ?? 0,
+ }
+
+ const quotaPct = getQuotaPercentage()
+ const quotaBarColor ="bg-blue-600"
 
  const statsData = [
- {
- title:"Total Employees",
- value: employees.active || 0,
- subtitle: `${employees.inactive || 0} inactive`,
- icon: Users,
- color:"text-blue-600",
- bgColor:"bg-blue-50 dark:bg-blue-900/30",
- borderColor:"border-border"
- },
- {
- title:"Admins",
- value: adminQuotas.length,
- subtitle:"Managing employees",
- icon: Shield,
- color:"text-slate-600",
- bgColor:"bg-secondary",
- borderColor:"border-border"
- },
- {
- title:"Present Today",
- value: attendance.present || 0,
- subtitle:"Checked in",
- icon: UserCheck,
- color:"text-blue-600",
- bgColor:"bg-blue-50 dark:bg-blue-900/30",
- borderColor:"border-border"
- },
- {
- title:"Pending Leaves",
- value: leaves.pendingCount || 0,
- subtitle:"Awaiting approval",
- icon: FileText,
- color:"text-blue-600",
- bgColor:"bg-blue-50 dark:bg-blue-900/30",
- borderColor:"border-border"
- },
+  {
+  title:"Active Employees",
+  value: employees.active || 0,
+  subtitle: `${employees.inactive || 0} inactive`,
+  icon: Users,
+  accent:"text-blue-600 dark:text-blue-400",
+  iconBg:"bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20",
+  },
+  {
+  title:"Present Today",
+  value: attendance.presentCount || 0,
+  subtitle:"Checked in",
+  icon: UserCheck,
+  accent:"text-blue-600 dark:text-blue-400",
+  iconBg:"bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20",
+  },
+  {
+  title:"Absent",
+  value: (employees.active || 0) - (attendance.presentCount || 0),
+  subtitle:"Not checked in",
+  icon: UserX,
+  accent:"text-muted-foreground",
+  iconBg:"bg-secondary border-border",
+  },
+  {
+  title:"Pending Requests",
+  value: leaves.pendingCount || 0,
+  subtitle:"Leaves awaiting",
+  icon: FileText,
+  accent:"text-blue-600 dark:text-blue-400",
+  iconBg:"bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20",
+  },
+ ]
+
+ const quickActions = [
+ { label:"Manage Staff", icon: Users, path:"/business-owner/employees" },
+ { label:"Check Attendance", icon: Calendar, path:"/business-owner/attendance" },
+ { label:"Review Leaves", icon: FileText, path:"/business-owner/leave-requests" },
  ]
 
  return (
- <div className="space-y-6 animate-in fade-in-50 duration-500">
- {/* Header */}
- <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
- <div>
- <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-slate-50">
- Overview
- </h1>
- <p className="text-muted-foreground mt-1">
- Manage your organization and oversee operations
- </p>
- </div>
- <div className="flex gap-2">
- <Button onClick={loadDashboard} variant="outline" size="sm" className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700">
- <RefreshCw className="h-4 w-4" />
- Refresh
- </Button>
- </div>
- </div>
+ <div className="space-y-4 sm:space-y-6">
+
+  {/* Page Header */}
+  <div className="bg-gradient-to-r from-blue-600 to-blue-700 sm:from-card sm:to-card rounded-2xl px-5 py-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 sm:gap-4 shadow-sm sm:border sm:border-border">
+  <div>
+  <h1 className="text-2xl sm:text-xl font-bold text-white sm:text-foreground tracking-tight">Dashboard</h1>
+  <p className="text-sm text-blue-100 sm:text-muted-foreground mt-1">
+  Overview for <span className="text-white sm:text-foreground font-medium">{currentUser?.name}</span>
+  </p>
+  </div>
+  <div className="flex w-full sm:w-auto gap-3">
+  <Button
+  onClick={loadDashboard}
+  variant="outline"
+  className="flex-1 sm:flex-none gap-2 border-white/30 sm:border-border text-white sm:text-foreground hover:bg-card/10 sm:hover:bg-muted bg-card/10 sm:bg-background"
+  >
+  <RefreshCw className="h-4 w-4" />
+  <span className="hidden sm:inline">Refresh</span>
+  </Button>
+  <Button
+  onClick={() => navigate("/business-owner/employees")}
+  className="flex-1 sm:flex-none gap-2 bg-card sm:bg-blue-600 text-blue-600 sm:text-white hover:bg-blue-50 sm:hover:bg-blue-700 shadow-none dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+  >
+  <Plus className="h-4 w-4" />
+  Add Employee
+  </Button>
+  </div>
+  </div>
 
  {/* Error Alert */}
  {error && (
- <Card className="border-red-200 bg-red-50 dark:bg-red-950/30">
- <CardContent className="pt-6">
- <div className="flex gap-3">
- <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
- <div>
- <p className="font-medium text-red-900 dark:text-red-200">Error</p>
- <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
- <Button size="sm" variant="outline" onClick={loadDashboard} className="mt-2 text-red-700 border-red-200 hover:bg-red-100">
- <RefreshCw className="mr-2 h-4 w-4" />
+ <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+ <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+ <div className="flex-1">
+ <p className="text-sm font-semibold text-red-800">Error Loading Dashboard</p>
+ <p className="text-xs text-red-600 mt-0.5">{error}</p>
+ </div>
+ <Button
+ size="sm"
+ variant="outline"
+ onClick={loadDashboard}
+ className="border-red-200 text-red-700 hover:bg-red-100 shrink-0"
+ >
  Retry
  </Button>
  </div>
- </div>
- </CardContent>
- </Card>
  )}
 
  {/* Stats Grid */}
- <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
- {statsData.map((stat, index) => {
- const Icon = stat.icon
- return (
- <Card
- key={index}
- className={`relative overflow-hidden transition-all duration-300 hover:shadow-md border ${stat.borderColor}`}
- >
- <CardHeader className="relative flex flex-row items-center justify-between pb-2">
- <CardTitle className="text-sm font-medium text-muted-foreground">
- {stat.title}
- </CardTitle>
- <div className={`p-2 rounded-lg ${stat.bgColor}`}>
- <Icon className={`h-4 w-4 ${stat.color}`} />
+ <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+ {statsData.map(({ title, value, subtitle, icon: Icon, accent, iconBg }) => (
+ <div key={title} className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-500 flex items-center justify-between sm:block">
+ <div className="sm:mb-4">
+ <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-none">{title}</span>
+ <p className={`text-2xl sm:text-3xl font-bold mt-1.5 sm:mt-0 ${accent}`}>{value}</p>
+ <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">{subtitle}</p>
  </div>
- </CardHeader>
- <CardContent className="relative">
- <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{stat.value}</div>
- <p className="text-xs text-muted-foreground mt-1">{stat.subtitle}</p>
- </CardContent>
- </Card>
- )
- })}
+ <div className={`p-3 sm:p-2 rounded-xl border sm:self-start sm:w-fit sm:ml-auto ${iconBg}`}>
+ <Icon className={`h-5 w-5 sm:h-4 sm:w-4 ${accent}`} />
+ </div>
+ </div>
+ ))}
  </div>
 
- {/* Organization Quota Overview */}
- <Card className="transition-all duration-300 hover:shadow-md border-border">
- <CardHeader className="pb-3 border-b border-border">
- <div className="flex items-center justify-between">
- <div>
- <CardTitle className="text-base font-semibold text-foreground">Organization Capacity</CardTitle>
- <p className="text-sm text-muted-foreground mt-1">
- Monitor your organization's resource utilization
- </p>
- </div>
- <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30">
- <Building2 className="h-5 w-5 text-blue-600" />
- </div>
- </div>
- </CardHeader>
- <CardContent className="pt-6">
- <div className="grid gap-6 sm:gap-8 sm:grid-cols-3">
- {/* Employees Quota */}
- <div className="space-y-3">
- <div className="flex justify-between items-center">
- <span className="text-sm font-medium text-foreground dark:text-slate-300">Employees</span>
- <span className="text-sm text-muted-foreground">
- <span className="font-semibold text-foreground">{quota?.utilization?.employees?.current || 0}</span> / {quota?.utilization?.employees?.max || 0}
- </span>
- </div>
- <Progress
- value={getOrgQuotaPercentage()}
- className="h-2 bg-secondary [&>div]:bg-blue-600"
- />
- <p className="text-xs text-muted-foreground">
- {quota?.utilization?.employees?.remaining || 0} slots available
- </p>
- </div>
- {/* Admins Quota */}
- <div className="space-y-3">
- <div className="flex justify-between items-center">
- <span className="text-sm font-medium text-foreground dark:text-slate-300">Admins</span>
- <span className="text-sm text-muted-foreground">
- <span className="font-semibold text-foreground">{adminQuotas.length}</span> / {quota?.utilization?.admins?.max || 0}
- </span>
- </div>
- <Progress
- value={quota?.utilization?.admins?.max ? (adminQuotas.length / quota.utilization.admins.max) * 100 : 0}
- className="h-2 bg-secondary [&>div]:bg-slate-600"
- />
- <p className="text-xs text-muted-foreground">
- {Math.max(0, (quota?.utilization?.admins?.max || 0) - adminQuotas.length)} admin slots available
- </p>
- </div>
- {/* Business Owners Quota */}
- <div className="space-y-3">
- <div className="flex justify-between items-center">
- <span className="text-sm font-medium text-foreground dark:text-slate-300">Business Owners</span>
- <span className="text-sm text-muted-foreground">
- <span className="font-semibold text-foreground">{quota?.utilization?.businessOwners?.current || 1}</span> / {quota?.utilization?.businessOwners?.max || 5}
- </span>
- </div>
- <Progress
- value={quota?.utilization?.businessOwners?.max ? ((quota?.utilization?.businessOwners?.current || 1) / quota.utilization.businessOwners.max) * 100 : 20}
- className="h-2 bg-secondary [&>div]:bg-slate-600"
- />
- <p className="text-xs text-muted-foreground">
- {quota?.utilization?.businessOwners?.remaining || 0} slots available
- </p>
- </div>
- </div>
- </CardContent>
- </Card>
+ {/* Main Content */}
+ <div className="grid gap-6 lg:grid-cols-3">
 
- {/* Admin Management and Pending Leaves Row */}
- <div className="grid gap-6 lg:grid-cols-2">
- {/* Admin Quota Management */}
- <Card className="transition-all duration-300 hover:shadow-md border-border">
- <CardHeader className="pb-3 border-b border-border">
- <div className="flex items-center justify-between">
+ {/* Left: Quota + Quick Actions */}
+ <div className="lg:col-span-2 space-y-6">
+
+ {/* Quota */}
+ <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+ <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+ <div className="p-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+ <TrendingUp className="h-4 w-4 text-blue-600" />
+ </div>
+ <h2 className="text-sm font-semibold text-foreground">Employee Creation Quota</h2>
+ </div>
+ <div className="px-6 py-5">
+ <div className="flex items-end justify-between mb-3">
  <div>
- <CardTitle className="text-base font-semibold text-foreground">Admin Quota Management</CardTitle>
- <p className="text-sm text-muted-foreground mt-1">
- Monitor and manage admin employee creation limits
- </p>
+ <span className="text-3xl font-bold text-foreground">{quota.employeesCreated || 0}</span>
+ <span className="text-sm text-muted-foreground ml-2">of {quota.canCreateUpTo || 0} used</span>
  </div>
- <Button
- variant="ghost"
- size="sm"
- onClick={() => navigate("/business-owner/employees")}
- className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8"
- >
- Manage
- <ChevronRight className="h-4 w-4 ml-1" />
- </Button>
+ <span className="text-xs font-medium px-2.5 py-1 rounded border border-border bg-background text-slate-600">
+ {quota.remaining || 0} remaining
+ </span>
  </div>
- </CardHeader>
- <CardContent className="pt-6">
- {adminQuotas.length === 0 ? (
- <div className="text-center py-8 text-muted-foreground">
- <Shield className="h-10 w-10 mx-auto mb-2 opacity-20" />
- <p>No admins created yet</p>
- <p className="text-xs mt-1">Create admins to delegate employee management</p>
- </div>
- ) : (
- <div className="space-y-4">
- {adminQuotas.slice(0, 4).map(admin => {
- const usage = admin.quota?.limit ? (admin.quota.created / admin.quota.limit) * 100 : 0
- return (
+ <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
  <div
- key={admin.id}
- className="p-4 rounded-lg bg-background /50 border border-border"
+ className={`h-2 rounded-full transition-all duration-500 ${quotaBarColor}`}
+ style={{ width: `${quotaPct}%` }}
+ />
+ </div>
+ <p className="text-xs text-muted-foreground mt-2 text-right">{quotaPct}% capacity used</p>
+ </div>
+ </div>
+
+ {/* Quick Actions */}
+ <div className="grid grid-cols-3 gap-2 sm:gap-4">
+ {quickActions.map(({ label, icon: Icon, path }) => (
+ <button
+ key={label}
+ onClick={() => navigate(path)}
+ className="bg-card border border-border rounded-xl p-3 sm:p-5 flex flex-col items-center justify-center gap-2 sm:gap-3 hover:border-blue-300 hover:bg-blue-50/40 transition-all duration-150 group shadow-sm hover:shadow-md"
  >
- <div className="flex items-center justify-between mb-3">
- <div className="flex items-center gap-3">
- <div className="h-9 w-9 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
- <Shield className="h-4 w-4 text-slate-600" />
+ <div className="p-2.5 sm:p-3 rounded-xl bg-secondary group-hover:bg-blue-100 border border-border group-hover:border-blue-200 transition-colors">
+ <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-blue-600 transition-colors" />
  </div>
- <div>
- <p className="font-medium text-sm text-foreground">{admin.name}</p>
- <p className="text-xs text-muted-foreground">{admin.email}</p>
+ <span className="text-[10px] sm:text-sm font-medium text-foreground group-hover:text-blue-700 transition-colors text-center leading-tight">{label}</span>
+ </button>
+ ))}
  </div>
  </div>
- <Badge variant="secondary" className="bg-card border-border text-foreground hover:bg-background">
- {admin.quota?.created || 0} / {admin.quota?.limit || 0}
+
+ {/* Right: Team Composition + Pending Leaves */}
+ <div className="space-y-6">
+
+ {/* Team Composition by Role + Position */}
+ {positionStats.roles.length > 0 && (
+ <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+ <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+ <div className="flex items-center gap-2.5">
+ <div className="p-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+ <Briefcase className="h-3.5 w-3.5 text-blue-600" />
+ </div>
+ <h2 className="text-sm font-semibold text-foreground">Team Composition</h2>
+ </div>
+ <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+ {allEmployees.filter(e => e.isActive !== false).length} active
  </Badge>
  </div>
- <Progress value={usage} className="h-1.5 bg-slate-200 dark:bg-slate-700 [&>div]:bg-blue-500" />
+ <div className="px-5 py-4 space-y-2.5">
+ <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">By Role</p>
+ {positionStats.roles.map(([role, count]) => (
+ <div key={role} className="flex items-center gap-3">
+ <span className="text-xs text-slate-600 w-28 truncate font-medium" title={role}>{role}</span>
+ <div className="flex-1 bg-secondary rounded-full h-1.5 overflow-hidden">
+ <div
+ className="h-1.5 rounded-full bg-blue-500 transition-all duration-500"
+ style={{ width: `${(count / maxRoleCount) * 100}%` }}
+ />
  </div>
- )
- })}
- {adminQuotas.length > 4 && (
- <p className="text-sm text-center text-muted-foreground pt-2">
- +{adminQuotas.length - 4} more admins
- </p>
+ <span className="text-xs font-semibold text-foreground w-6 text-right">{count}</span>
+ </div>
+ ))}
+ {positionStats.positions.length > 0 && (
+ <>
+ <div className="border-t border-border pt-2.5 mt-2.5">
+ <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">By Position</p>
+ </div>
+ {positionStats.positions.map(([pos, count]) => (
+ <div key={pos} className="flex items-center gap-3">
+ <span className="text-xs text-slate-600 w-28 truncate font-medium" title={pos}>{pos}</span>
+ <div className="flex-1 bg-secondary rounded-full h-1.5 overflow-hidden">
+ <div
+ className="h-1.5 rounded-full bg-indigo-400 transition-all duration-500"
+ style={{ width: `${(count / maxPosCount) * 100}%` }}
+ />
+ </div>
+ <span className="text-xs font-semibold text-foreground w-6 text-right">{count}</span>
+ </div>
+ ))}
+ </>
  )}
  </div>
+ </div>
  )}
- </CardContent>
- </Card>
 
- {/* Pending Leave Requests */}
- <Card className="transition-all duration-300 hover:shadow-md border-border">
- <CardHeader className="pb-3 border-b border-border">
- <div className="flex items-center justify-between">
- <div>
- <CardTitle className="text-base font-semibold text-foreground">Pending Leave Requests</CardTitle>
- <p className="text-sm text-muted-foreground mt-1">
- {leaves.pendingCount} request{leaves.pendingCount !== 1 ? 's' : ''} in queue
- </p>
- </div>
- <Button
- variant="ghost"
- size="sm"
+ {/* Pending Leaves */}
+ <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+ <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+ <h2 className="text-sm font-semibold text-foreground">Pending Leaves</h2>
+ <button
  onClick={() => navigate("/business-owner/leave-requests")}
- className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8"
+ className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
  >
- View All
- <ChevronRight className="h-4 w-4 ml-1" />
- </Button>
+ View All &rarr;
+ </button>
  </div>
- </CardHeader>
- <CardContent className="pt-6">
- {leaves.pending?.length === 0 ? (
- <div className="text-center py-8 text-muted-foreground">
- <FileText className="h-10 w-10 mx-auto mb-2 opacity-20" />
- <p>No pending leave requests</p>
+
+ <div className="flex-1 px-5 py-4">
+ {!leaves.pending?.length ? (
+ <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+ <div className="p-3 bg-secondary rounded-full mb-3">
+ <FileText className="h-6 w-6 text-slate-300" />
+ </div>
+ <p className="text-sm text-muted-foreground">No pending requests</p>
  </div>
  ) : (
- <div className="space-y-3">
- {leaves.pending?.slice(0, 4).map((leave, i) => (
+ <div className="space-y-2">
+ {leaves.pending.slice(0, 5).map((leave, i) => (
  <div
- key={leave.id || i}
- className="flex items-center justify-between p-3 rounded-lg bg-background /50 border border-border hover:bg-secondary transition-colors"
+ key={i}
+ className="flex items-start gap-3 p-3 rounded-lg border border-border bg-background hover:bg-secondary/70 transition-colors"
  >
- <div className="flex items-center gap-3">
- <div className="h-9 w-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center">
- <Clock className="h-4 w-4 text-blue-600" />
+ <div className="mt-0.5 p-1.5 rounded-md bg-card border border-border shrink-0">
+ <Clock className="h-3.5 w-3.5 text-blue-500" />
  </div>
- <div>
- <p className="font-medium text-sm text-foreground">{leave.userName || leave.employeeName || 'Employee'}</p>
- <p className="text-xs text-muted-foreground">
- {leave.leaveType} • {leave.startDate} - {leave.endDate}
+ <div className="flex-1 min-w-0">
+ <p className="text-sm font-medium text-foreground truncate">
+ {leave.userName || leave.employeeName || 'Employee'}
  </p>
+ <div className="flex items-center gap-2 mt-1 flex-wrap">
+ <span className="inline-block text-[10px] font-medium px-2 py-0.5 rounded border border-border bg-card text-slate-600">
+ {leave.leaveType}
+ </span>
+ <span className="text-xs text-muted-foreground">{leave.startDate}</span>
  </div>
  </div>
- <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
- Pending
- </Badge>
  </div>
  ))}
  </div>
  )}
- </CardContent>
- </Card>
  </div>
-
- {/* Quick Actions */}
- <Card className="transition-all duration-300 hover:shadow-md border-border">
- <CardHeader className="pb-3 border-b border-border">
- <CardTitle className="text-base font-semibold text-foreground">Quick Actions</CardTitle>
- </CardHeader>
- <CardContent className="pt-6">
- <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
- <Button
- variant="outline"
- className="h-auto py-4 flex flex-col gap-3 border-blue-100 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group shadow-sm hover:shadow-md"
- onClick={() => navigate("/business-owner/employees")}
- >
- <div className="p-3 rounded-full bg-blue-100/50 group-hover:bg-blue-200/50 transition-colors">
- <Users className="h-6 w-6 text-blue-600" />
  </div>
- <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">View Employees</span>
- </Button>
- <Button
- variant="outline"
- className="h-auto py-4 flex flex-col gap-3 border-blue-100 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group shadow-sm hover:shadow-md"
- onClick={() => navigate("/business-owner/attendance")}
- >
- <div className="p-3 rounded-full bg-blue-100/50 group-hover:bg-blue-200/50 transition-colors">
- <Eye className="h-6 w-6 text-blue-600" />
  </div>
- <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">View Attendance</span>
- </Button>
- <Button
- variant="outline"
- className="h-auto py-4 flex flex-col gap-3 border-blue-100 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group shadow-sm hover:shadow-md"
- onClick={() => navigate("/business-owner/leave-requests")}
- >
- <div className="p-3 rounded-full bg-blue-100/50 group-hover:bg-blue-200/50 transition-colors">
- <FileText className="h-6 w-6 text-blue-600" />
  </div>
- <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Leave Requests</span>
- </Button>
- <Button
- variant="outline"
- className="h-auto py-4 flex flex-col gap-3 border-blue-100 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group shadow-sm hover:shadow-md"
- onClick={() => navigate("/business-owner/profile")}
- >
- <div className="p-3 rounded-full bg-blue-100/50 group-hover:bg-blue-200/50 transition-colors">
- <Settings className="h-6 w-6 text-blue-600" />
- </div>
- <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Settings</span>
- </Button>
- </div>
- </CardContent>
- </Card>
  </div>
  )
 }
